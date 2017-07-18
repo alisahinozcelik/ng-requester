@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"noImplicitAny": false,
+		"preserveConstEnums": true,
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+		"sourceMap": true,
+		"target": "es5",
+    "lib": [
+      "dom",
+      "es2015"
+    ]
+	},
+	"exclude": [
+		"node_modules"
+	]
+}
