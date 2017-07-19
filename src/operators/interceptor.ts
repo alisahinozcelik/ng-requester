@@ -1,24 +1,34 @@
+import { noop } from "lodash";
+
 import { IOperator, OperatorBase } from "./operator";
 import { RequesterError } from "./error";
 import { Retry } from "./retry";
-import { revertPromise } from "../utils/revert-promise";
 
 export class Interceptor extends OperatorBase implements IOperator {
 	private static ERROR = Symbol("INTERCEPTED");
+	private static PROMISE_NEVER = new Promise<void>(noop);
 
 	constructor(
-		private interceptOnResolve: () => Promise<void>,
+		private interceptOnResolve: () => Promise<any>,
 		private retryAfter?: () => Promise<any>
 	) {
 		super();
 	}
 
 	public middleware(): Promise<void> {
-		return revertPromise(this.interceptOnResolve()).catch(error => {
-			if (!(error instanceof RequesterError)) {
-				error = new RequesterError(Interceptor.ERROR, error);
-			}
-			throw error;
-		});
+		return this.interceptOnResolve()
+			.catch(error => {
+				console.warn("An error occured during the interceptor promise, (do not reject interceptor promise)", error);
+				return Interceptor.PROMISE_NEVER;
+			})
+			.then(val => {
+				if (this.retryAfter) {
+					throw new Retry(this.retryAfter(), val);
+				}
+				if (!(val instanceof RequesterError)) {
+					val = new RequesterError(Interceptor.ERROR, val);
+				}
+				return val;
+			});
 	}
 }

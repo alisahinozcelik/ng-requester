@@ -1,10 +1,14 @@
 import { IOperator, OperatorBase } from "./operator";
 import { IRequesterOptions } from "../interfaces";
-import { RequesterError } from "../requester-error";
+import { RequesterError } from "./error";
 
 export class PreRequest extends OperatorBase implements IOperator {
-	private static ERROR = Symbol("Pre Request Error");
+	private static ERROR = Symbol("Stopped on Pre-Request Operation");
 
+	/**
+	 * Pass a callback function to temporary modify options before request
+	 * @param modifier Callback function, gets current options as parameter, must return modified options
+	 */
 	constructor(
 		private modifier: (options: IRequesterOptions) => IRequesterOptions | Promise<IRequesterOptions>
 	) {

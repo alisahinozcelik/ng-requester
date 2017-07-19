@@ -85,27 +85,27 @@ export class Requester<T> {
 		return Requester.clone<U>(this, { operators: [...this.operators, ...operators]});
 	}
 
-	public request<U = T>(method: METHODS, url: string, options: IRequesterOptions = null): Requester<U> {
-		return Requester.clone<U>(this, {method: method, url: url, options: options});
+	public request<U = T>(method: METHODS, url: string, options: IRequesterOptions = null): Promise<U> {
+		return Requester.clone<U>(this, {method: method, url: url, options: options}).send();
 	}
 
-	public get<U = T>(url: string, options: IRequesterOptions = null): Requester<U> {
+	public get<U = T>(url: string, options: IRequesterOptions = null): Promise<U> {
 		return this.request(METHODS.GET, url, options);
 	}
 
-	public post<U = T>(url: string, options: IRequesterOptions = null): Requester<U> {
+	public post<U = T>(url: string, options: IRequesterOptions = null): Promise<U> {
 		return this.request(METHODS.POST, url, options);
 	}
 
-	public put<U = T>(url: string, options: IRequesterOptions = null): Requester<U> {
+	public put<U = T>(url: string, options: IRequesterOptions = null): Promise<U> {
 		return this.request(METHODS.PUT, url, options);
 	}
 
-	public patch<U = T>(url: string, options: IRequesterOptions = null): Requester<U> {
+	public patch<U = T>(url: string, options: IRequesterOptions = null): Promise<U> {
 		return this.request(METHODS.PATCH, url, options);
 	}
 
-	public delete<U = T>(url: string, options: IRequesterOptions = null): Requester<U> {
+	public delete<U = T>(url: string, options: IRequesterOptions = null): Promise<U> {
 		return this.request(METHODS.DELETE, url, options);
 	}
 
@@ -138,9 +138,13 @@ export class Requester<T> {
 				return promiseFactoryChainer<IRequesterOptions>(preRequestMiddlewares, Requester.cloneOptions(this.options))
 			})
 			.then(options => {
+				// Returning Promise
 				const promise = new OpenPromise<U>();
+
+				// Format Request Options for Angular
 				const requestOptions: { responsType: string; } & IRequesterOptions = Object.assign({}, options, { responsType: RESPONSE_TYPES[options.responsType] });
 
+				// Send Actual Request
 				const subscription = (this.client.request(METHODS[this.method], this.url, requestOptions) as Observable<U>)
 					.subscribe({
 						next: res => {
@@ -151,11 +155,34 @@ export class Requester<T> {
 						}
 					});
 				
-				const interceptors = this.operators.filter(op => op instanceof Interceptor).map((op: Interceptor) => op.middleware());
+				// Run Interceptors
+				const interceptors = this.operators
+					.filter(op => op instanceof Interceptor)
+					.map((op: Interceptor) => Observable.fromPromise(op.middleware()));
 				
-				Promise.race(interceptors)
-					.catch()
+				const interceptorSubs = Observable.merge(...interceptors)
+					.first()
+					.subscribe({
+						next: res => {
+							subscription.unsubscribe();
+							promise.reject(res);
+						},
+						error: err => {promise.reject(err)}
+					});
+
+				// Cancel Interceptors After Response
+				function unsubscribe() {
+					interceptorSubs.unsubscribe();
+				}
+
+				promise.promise
+					.then(unsubscribe)
+					.catch(unsubscribe);
+
 				return promise.promise;
+			})
+			.then(val => {
+				
 			})
 	}
 
