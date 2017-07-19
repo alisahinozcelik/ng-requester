@@ -2,7 +2,7 @@ import { Injectable } from "@angular/core";
 import { HttpClient, HttpHeaders, HttpParams } from "@angular/common/http";
 import { Observable } from "rxjs";
 
-import { OperatorBase, OnStart, Guard, PreRequest, Interceptor } from "./operators";
+import { OperatorBase, IOperator, OnStart, Guard, PreRequest, Interceptor, PostRequest, Retry, RequesterError, ErrorHandler, OnEnd } from "./operators";
 import { IRequesterOptions, METHODS, RESPONSE_TYPES } from "./interfaces";
 import { promiseFactoryChainer } from "./utils/promise-chainer";
 import { OpenPromise } from "./utils/open-promise";
@@ -13,6 +13,8 @@ export class Requester<T> {
 	protected method: METHODS = METHODS.GET;
 	protected url: string = "/";
 	protected options: IRequesterOptions = {};
+
+	private static ERROR = Symbol("UNKNOWN_ERROR");
 
 	constructor(
 		protected client: HttpClient
@@ -111,33 +113,50 @@ export class Requester<T> {
 
 	public send<U = T>(): Promise<U> {
 		const requestId = Symbol('Requester.Request');
+		const self = this;
 
-		this.operators
-			.filter(operator => operator instanceof OnStart)
-			.forEach((operator: OnStart) => {
-				operator.middleware(requestId);
-			});
+		function runCallbacks(type: Function, param: any) {
+			self.operators
+				.filter(operator => operator instanceof type)
+				.forEach((operator: IOperator) => {
+					operator.middleware(param);
+				});
+		}
+		
+		runCallbacks(OnStart, requestId);
 		
 		return this._send<U>()
-			.catch(err => {
-				throw err;
-			});
+			.catch(error => {
+				if (!(error instanceof RequesterError)) {
+					error = new RequesterError(Requester.ERROR, error);
+				}
+				throw error;
+			})
+			.catch((error: RequesterError) => {
+				runCallbacks(ErrorHandler, error);
+				runCallbacks(OnEnd, requestId);
+				throw error;
+			})
+			.then(res => {
+				runCallbacks(OnEnd, requestId);
+				return res;
+			})
 	}
 
-	private _send<U>(): Promise<any> {
+	private _send<U>(): Promise<U> {
 		const guards = this.operators
 			.filter(op => op instanceof Guard)
 			.map((op: Guard) => op.middleware());
 
 		return Promise.all(guards)
-			.then(() => {
+			.then<IRequesterOptions>(() => {
 				const preRequestMiddlewares = this.operators
 					.filter(val => val instanceof PreRequest)
 					.map((val: PreRequest) => val.middleware);
 
 				return promiseFactoryChainer<IRequesterOptions>(preRequestMiddlewares, Requester.cloneOptions(this.options))
 			})
-			.then(options => {
+			.then<U>(options => {
 				// Returning Promise
 				const promise = new OpenPromise<U>();
 
@@ -181,9 +200,19 @@ export class Requester<T> {
 
 				return promise.promise;
 			})
-			.then(val => {
+			.then<U>(val => {
+				const postRequestModifiers = this.operators
+					.filter(op => op instanceof PostRequest)
+					.map((op: PostRequest<U>) => op.middleware);
 				
+				return promiseFactoryChainer<U>(postRequestModifiers, val);
 			})
+			.catch<any>((error) => {
+				if (error instanceof Retry) {
+					return error.promise.then(() => this._send());
+				}
+				throw error;
+			});
 	}
 
 	// Static Methods

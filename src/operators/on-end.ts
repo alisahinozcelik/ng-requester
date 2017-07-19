@@ -1,6 +1,6 @@
 import { OperatorBase, IOperator } from "./operator";
 
-export class OnStart extends OperatorBase implements IOperator {
+export class OnEnd extends OperatorBase implements IOperator {
 	constructor(
 		private callback: (id: symbol) => void
 	) {

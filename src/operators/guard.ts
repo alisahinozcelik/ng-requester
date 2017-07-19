@@ -1,5 +1,5 @@
 import { IOperator, OperatorBase } from "./operator";
-import { RequesterError } from "../requester-error";
+import { RequesterError } from "./error";
 import { Retry } from "./retry";
 
 export class Guard extends OperatorBase implements IOperator {
