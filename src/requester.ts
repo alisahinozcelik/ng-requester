@@ -1,29 +1,11 @@
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpHeaders, HttpParams } from "@angular/common/http";
+import { Observable } from "rxjs";
 
-import { OperatorBase } from "./operators";
-
-export enum METHODS {
-	GET,
-	DELETE,
-	POST,
-	PUT,
-	PATCH
-}
-
-export enum RESPONSE_TYPES {
-	arraybuffer,
-	blob,
-	json,
-	text
-}
-
-export interface IRequesterOptions {
-	body?: any,
-	headers?: HttpHeaders,
-	params?: HttpParams,
-	responsType?: RESPONSE_TYPES
-}
+import { OperatorBase, OnStart, Guard, PreRequest, Interceptor } from "./operators";
+import { IRequesterOptions, METHODS, RESPONSE_TYPES } from "./interfaces";
+import { promiseFactoryChainer } from "./utils/promise-chainer";
+import { OpenPromise } from "./utils/open-promise";
 
 @Injectable()
 export class Requester<T> {
@@ -127,6 +109,57 @@ export class Requester<T> {
 		return this.request(METHODS.DELETE, url, options);
 	}
 
+	public send<U = T>(): Promise<U> {
+		const requestId = Symbol('Requester.Request');
+
+		this.operators
+			.filter(operator => operator instanceof OnStart)
+			.forEach((operator: OnStart) => {
+				operator.middleware(requestId);
+			});
+		
+		return this._send<U>()
+			.catch(err => {
+				throw err;
+			});
+	}
+
+	private _send<U>(): Promise<any> {
+		const guards = this.operators
+			.filter(op => op instanceof Guard)
+			.map((op: Guard) => op.middleware());
+
+		return Promise.all(guards)
+			.then(() => {
+				const preRequestMiddlewares = this.operators
+					.filter(val => val instanceof PreRequest)
+					.map((val: PreRequest) => val.middleware);
+
+				return promiseFactoryChainer<IRequesterOptions>(preRequestMiddlewares, Requester.cloneOptions(this.options))
+			})
+			.then(options => {
+				const promise = new OpenPromise<U>();
+				const requestOptions: { responsType: string; } & IRequesterOptions = Object.assign({}, options, { responsType: RESPONSE_TYPES[options.responsType] });
+
+				const subscription = (this.client.request(METHODS[this.method], this.url, requestOptions) as Observable<U>)
+					.subscribe({
+						next: res => {
+							promise.resolve(res);
+						},
+						error: err => {
+							promise.reject(err);
+						}
+					});
+				
+				const interceptors = this.operators.filter(op => op instanceof Interceptor).map((op: Interceptor) => op.middleware());
+				
+				Promise.race(interceptors)
+					.catch()
+				return promise.promise;
+			})
+	}
+
+	// Static Methods
 	/**
 	 * Cloning Function of Requester
 	 * @param referance Requester Referance to clone its properties
@@ -164,7 +197,7 @@ export class Requester<T> {
 	 * @param oldOptions 
 	 * @param newOptions 
 	 */
-	protected static cloneOptions(oldOptions: IRequesterOptions, newOptions: IRequesterOptions): IRequesterOptions {
+	protected static cloneOptions(oldOptions: IRequesterOptions, newOptions: IRequesterOptions = {}): IRequesterOptions {
 		const options = Object.assign({}, oldOptions, newOptions);
 
 		// Handle Headers
