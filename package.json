@@ -9,6 +9,7 @@
     "build": "gulp publish",
     "postinstall": "postinstall-build dist"
   },
+  "private": true,
   "repository": {
     "type": "git",
     "url": "https://bilgetech.visualstudio.com/DefaultCollection/Bilgetech%20Frontend%20Libraries/_git/ng-requester"
