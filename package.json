@@ -10,6 +10,7 @@
     "postinstall": "postinstall-build dist"
   },
   "private": true,
+  "typings": "./dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://bilgetech.visualstudio.com/DefaultCollection/Bilgetech%20Frontend%20Libraries/_git/ng-requester"
