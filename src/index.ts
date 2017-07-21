@@ -1,4 +1,15 @@
 export * from './requester';
 export * from './requester.module';
-export { ErrorHandler, Guard, Interceptor, OnEnd, OnStart, PostRequest, PreRequest, RequesterError } from './operators';
-export { IRequesterOptions, METHODS, RESPONSE_TYPES } from './interfaces';
+
+export * from './operators/error-handler';
+export * from './operators/guard';
+export * from './operators/interceptor';
+export * from './operators/on-end';
+export * from './operators/on-start';
+export * from './operators/post-request';
+export * from './operators/pre-request';
+export * from './operators/error';
+
+export * from './interfaces/methods';
+export * from './interfaces/options';
+export * from './interfaces/response-types';
