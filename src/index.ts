@@ -1,3 +1,12 @@
+// Polyfills
+import 'es6-shim';
+import 'weakmap-polyfill';
+// window['Symbol'] = Symbol || require('es6-symbol');
+
+// Vendor
+import 'reflect-metadata';
+
+// Lib
 export * from './requester';
 export * from './requester.module';
 

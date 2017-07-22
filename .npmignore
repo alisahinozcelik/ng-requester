@@ -1,4 +1,5 @@
 node_modules/
 documentation/
 src/
+tasks/
 package-lock.json
