@@ -5,11 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "document:serve": "compodoc -p ./tsconfig.json -w -s",
-    "build": "gulp publish",
-    "postinstall": "postinstall-build dist"
+    "document:serve": "compodoc -p ./tsconfig.json -w -s"
   },
-  "private": true,
+  "private": false,
   "typings": "./dist/index.d.ts",
   "repository": {
     "type": "git",
@@ -37,8 +35,10 @@
     "@angular/common": "^4.3.0",
     "@angular/core": "^4.3.0",
     "lodash": "^4.17.4",
-    "postinstall-build": "^5.0.1",
     "rxjs": "^5.4.2",
     "zone.js": "^0.8.14"
+  },
+  "publishConfig": {
+    "registry": "https://bilgetech.pkgs.visualstudio.com/_packaging/Bilgetech_Registry/npm/registry/"
   }
 }

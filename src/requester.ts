@@ -11,7 +11,8 @@ import { OpenPromise } from "./utils/open-promise";
 export class Requester<T> {
 	protected operators: OperatorBase[] = [];
 	protected method: METHODS = METHODS.GET;
-	protected url: string = "/";
+	protected host: string = "";
+	protected url: string = "";
 	protected options: IRequesterOptions = {};
 
 	private static ERROR = Symbol("UNKNOWN_ERROR");
@@ -27,6 +28,14 @@ export class Requester<T> {
 	 */
 	public setUrl<U = T>(url: string): Requester<U> {
 		return Requester.clone<U>(this, {url: url});
+	}
+
+	/**
+	 * Change host of the request
+	 * @param host Host to set
+	 */
+	public setHost<U = T>(host: string): Requester<U> {
+		return Requester.clone<U>(this, {host: host});
 	}
 
 	/**
@@ -140,7 +149,7 @@ export class Requester<T> {
 			.then(res => {
 				runCallbacks(OnEnd, requestId);
 				return res;
-			})
+			});
 	}
 
 	private _send<U>(): Promise<U> {
@@ -154,7 +163,7 @@ export class Requester<T> {
 					.filter(val => val instanceof PreRequest)
 					.map((val: PreRequest) => val.middleware);
 
-				return promiseFactoryChainer<IRequesterOptions>(preRequestMiddlewares, Requester.cloneOptions(this.options))
+				return promiseFactoryChainer<IRequesterOptions>(preRequestMiddlewares, Requester.cloneOptions(this.options));
 			})
 			.then<U>(options => {
 				// Returning Promise
@@ -164,7 +173,7 @@ export class Requester<T> {
 				const requestOptions: { responsType: string; } & IRequesterOptions = Object.assign({}, options, { responsType: RESPONSE_TYPES[options.responsType] });
 
 				// Send Actual Request
-				const subscription = (this.client.request(METHODS[this.method], this.url, requestOptions) as Observable<U>)
+				const subscription = (this.client.request(METHODS[this.method], `${this.host}/${this.url}`, requestOptions) as Observable<U>)
 					.subscribe({
 						next: res => {
 							promise.resolve(res);
@@ -186,7 +195,7 @@ export class Requester<T> {
 							subscription.unsubscribe();
 							promise.reject(res);
 						},
-						error: err => {promise.reject(err)}
+						error: err => {promise.reject(err);}
 					});
 
 				// Cancel Interceptors After Response
@@ -224,18 +233,23 @@ export class Requester<T> {
 	protected static clone<T>(
 		referance: Requester<T>,
 		cloningProperties: {
-			method?: METHODS,
-			url?: string,
-			options?: IRequesterOptions,
-			operators?: OperatorBase[]
+			method?: METHODS;
+			url?: string;
+			host?: string;
+			options?: IRequesterOptions;
+			operators?: OperatorBase[];
 		} = {}
 	): Requester<T> {
 
 		const requester = new Requester<T>(referance.client);
-		const {method, url, options, operators} = cloningProperties;
+		const {method, url, host, options, operators} = cloningProperties;
 
 		if (method !== undefined) {
 			requester.method = method;
+		}
+
+		if (host !== undefined) {
+			requester.host = host;
 		}
 
 		if (url !== undefined) {
