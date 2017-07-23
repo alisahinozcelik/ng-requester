@@ -8,7 +8,7 @@ import { promiseFactoryChainer } from "./utils/promise-chainer";
 import { OpenPromise } from "./utils/open-promise";
 
 @Injectable()
-export class Requester<T> {
+export class Requester<T = any> {
 	protected operators: OperatorBase[] = [];
 	protected method: METHODS = METHODS.GET;
 	protected host: string = "";
@@ -244,17 +244,9 @@ export class Requester<T> {
 		const requester = new Requester<T>(referance.client);
 		const {method, url, host, options, operators} = cloningProperties;
 
-		if (method !== undefined) {
-			requester.method = method;
-		}
-
-		if (host !== undefined) {
-			requester.host = host;
-		}
-
-		if (url !== undefined) {
-			requester.url = url;
-		}
+		requester.method = method !== undefined ? method : referance.method;
+		requester.host = host !== undefined ? host : referance.host;
+		requester.url = url !== undefined ? url : referance.url;
 
 		requester.options = Requester.cloneOptions(referance.options, (options || {}));
 		requester.operators = [...referance.operators, ...operators];

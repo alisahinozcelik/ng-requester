@@ -35,20 +35,20 @@ describe("Service: Requester", () => {
 	it("should request", done => {
 
 		inject([Requester], (requester: Requester<any>) => {
-			requester.get<boolean>('')
+			requester
+				.get<boolean>('')
 				.then(val => {
-					console.info('val', val);
 					expect(val).toBe(true);
 					done();
 				})
 				.catch(err => {
-					console.info("error", err);
 					fail();
 				});
-			http.match(req => {
-				console.info(req);
-				return true;
-			});
+			setTimeout(() => {
+				http.expectOne(req => {
+					return true;
+				}).flush(JSON.stringify(true));
+			}, 500);
 		})();
 	});
 });

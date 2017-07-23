@@ -1,6 +1,6 @@
 require('es6-shim');
 require('weakmap-polyfill');
-// var Symbol = window['Symbol'] = typeof Symbol !== 'undefined' ? Symbol : require('es6-symbol');
+var Symbol = window['Symbol'] = typeof Symbol !== 'undefined' ? Symbol : require('es6-symbol');
 require('reflect-metadata');
 require('zone.js/dist/zone');
 require('zone.js/dist/long-stack-trace-zone');
