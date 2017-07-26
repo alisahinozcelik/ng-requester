@@ -1,6 +1,6 @@
 import { IOperator, OperatorBase } from "./operator";
 import { IRequesterOptions } from "../interfaces";
-import { RequesterError } from "./error";
+import { Error } from "../helpers/error";
 
 export class PreRequest extends OperatorBase implements IOperator {
 	private static ERROR = Symbol("Stopped on Pre-Request Operation");
@@ -20,8 +20,8 @@ export class PreRequest extends OperatorBase implements IOperator {
 		return Promise.resolve()
 			.then(() => result)
 			.catch(error => {
-				if (!(error instanceof RequesterError)) {
-					error = new RequesterError(PreRequest.ERROR, error);
+				if (!(error instanceof Error)) {
+					error = new Error(PreRequest.ERROR, error);
 				}
 				throw error;
 			});

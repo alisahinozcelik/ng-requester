@@ -1,6 +1,6 @@
-import { RequesterError } from "./error";
+import { Error } from "../helpers/error";
 
-export class Retry extends RequesterError {
+export class Retry extends Error {
 	private static SYMBOL = Symbol('Requester Retry');
 
 	constructor(

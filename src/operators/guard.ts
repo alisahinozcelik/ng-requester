@@ -1,5 +1,5 @@
 import { IOperator, OperatorBase } from "./operator";
-import { RequesterError } from "./error";
+import { Error } from "../helpers/error";
 import { Retry } from "./retry";
 
 export class Guard extends OperatorBase implements IOperator {
@@ -31,8 +31,8 @@ export class Guard extends OperatorBase implements IOperator {
 					throw new Retry(this.retryOnCatch(), error);
 				}
 
-				if (!(error instanceof RequesterError)) {
-					error = new RequesterError(Guard.ERROR_TYPE, error);
+				if (!(error instanceof Error)) {
+					error = new Error(Guard.ERROR_TYPE, error);
 				}
 				throw error;
 			});

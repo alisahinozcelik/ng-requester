@@ -1,5 +1,5 @@
 import { Component } from "@angular/core";
-import { Requester } from "../src";
+import { Requester } from "../src/requester2";
 
 @Component({
 	selector: 'test',
@@ -7,10 +7,19 @@ import { Requester } from "../src";
 })
 export class TestComponent {
 	constructor(req: Requester) {
-		req
-			.setHost('http://www.mocky.io')
-			.get('v2/597479ef10000094011bc2da')
-			.then(console.log)
-			.catch(console.error);
+		const clone = req.clone();
+		console.log(clone.url);
+
+		req.url = "xxx";
+		console.log(clone.url);
+
+		clone.url = "clone";
+		console.log(clone.url);
+
+		const newClone = clone.clone();
+		console.log(newClone.url);
+
+		newClone.url = "newClone";
+		console.log(newClone.url);
 	}
 }

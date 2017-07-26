@@ -1,5 +1,5 @@
 import { IOperator, OperatorBase } from "./operator";
-import { RequesterError } from "./error";
+import { Error } from "../helpers/error";
 import { Retry } from "./retry";
 
 export class PostRequest<T, U = T> extends OperatorBase implements IOperator {
@@ -18,8 +18,8 @@ export class PostRequest<T, U = T> extends OperatorBase implements IOperator {
 				if (this.retryOnCatch) {
 					throw new Retry(this.retryOnCatch(), error);
 				}
-				if (!(error instanceof RequesterError)) {
-					error = new RequesterError(PostRequest.ERROR, error);
+				if (!(error instanceof Error)) {
+					error = new Error(PostRequest.ERROR, error);
 				}
 				throw error;
 			})

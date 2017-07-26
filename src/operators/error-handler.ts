@@ -1,12 +1,12 @@
 import { IOperator, OperatorBase } from "./operator";
-import { RequesterError } from "./error";
+import { Error } from "../helpers/error";
 
 export class ErrorHandler extends OperatorBase implements IOperator {
-	constructor(private handler: (error: RequesterError) => void) {
+	constructor(private handler: (error: Error) => void) {
 		super();
 	}
 
-	public middleware(error: RequesterError):void {
+	public middleware(error: Error):void {
 		this.handler(error);
 	}
 }

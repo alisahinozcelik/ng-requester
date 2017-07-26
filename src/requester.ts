@@ -2,7 +2,8 @@ import { Injectable } from "@angular/core";
 import { HttpClient, HttpHeaders, HttpParams } from "@angular/common/http";
 import { Observable } from "rxjs";
 
-import { OperatorBase, IOperator, OnStart, Guard, PreRequest, Interceptor, PostRequest, Retry, RequesterError, ErrorHandler, OnEnd } from "./operators";
+import { OperatorBase, IOperator, OnStart, Guard, PreRequest, Interceptor, PostRequest, Retry, ErrorHandler, OnEnd } from "./operators";
+import { Error } from "./helpers/error";
 import { IRequesterOptions, METHODS, RESPONSE_TYPES } from "./interfaces";
 import { promiseFactoryChainer } from "./utils/promise-chainer";
 import { OpenPromise } from "./utils/open-promise";
@@ -136,12 +137,12 @@ export class Requester<T = any> {
 		
 		return this._send<U>()
 			.catch(error => {
-				if (!(error instanceof RequesterError)) {
-					error = new RequesterError(Requester.ERROR, error);
+				if (!(error instanceof Error)) {
+					error = new Error(Requester.ERROR, error);
 				}
 				throw error;
 			})
-			.catch((error: RequesterError) => {
+			.catch((error: Error) => {
 				runCallbacks(ErrorHandler, error);
 				runCallbacks(OnEnd, requestId);
 				throw error;

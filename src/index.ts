@@ -17,7 +17,7 @@ export * from './operators/on-end';
 export * from './operators/on-start';
 export * from './operators/post-request';
 export * from './operators/pre-request';
-export * from './operators/error';
+export * from './helpers/error';
 
 export * from './interfaces/methods';
 export * from './interfaces/options';

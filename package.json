@@ -4,6 +4,7 @@
   "description": "Angular Http Request Module",
   "main": "dist/index.js",
   "scripts": {
+    "play": "webpack-dev-server --config playground/webpack.js",
     "test": "karma start ./tasks/karma/karma.conf.js --browsers=Chrome --single-run=false --debug",
     "document:serve": "compodoc -p ./tsconfig.json -w -s"
   },
