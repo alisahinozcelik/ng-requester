@@ -10,18 +10,19 @@ export class Interceptor extends OperatorBase implements IOperator {
 
 	constructor(
 		private interceptOnResolve: () => Promise<any>,
-		private retryAfter?: () => Promise<any>
+		private retryAfter?: () => Promise<any>,
+		public keepSamePromiseOnRetry = false
 	) {
 		super();
 	}
 
-	public middleware(): Promise<void> {
+	public middleware(): Promise<Error> {
 		return this.interceptOnResolve()
 			.catch(error => {
 				console.warn("An error occured during the interceptor promise, (do not reject interceptor promise)", error);
 				return Interceptor.PROMISE_NEVER;
 			})
-			.then(val => {
+			.then<Error, Retry>(val => {
 				if (this.retryAfter) {
 					throw new Retry(this.retryAfter(), val);
 				}

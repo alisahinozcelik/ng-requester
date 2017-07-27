@@ -1,6 +1,6 @@
-import { Error } from "../helpers/error";
+import { Error, IError } from "./error";
 
-export class Retry extends Error {
+export class Retry extends Error implements IError {
 	private static SYMBOL = Symbol('Requester Retry');
 
 	constructor(
