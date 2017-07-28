@@ -5,7 +5,8 @@ export class Retry extends Error implements IError {
 
 	constructor(
 		public promise: Promise<any>,
-		public error: any
+		public error: any,
+		public data?: any
 	) {
 		super(Retry.SYMBOL, error);
 	}

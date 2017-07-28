@@ -1,8 +1,7 @@
 import { noop } from "lodash";
 
 import { IOperator, OperatorBase } from "./operator";
-import { Error } from "../helpers/error";
-import { Retry } from "./retry";
+import { Error, Retry } from "../helpers";
 
 export class Interceptor extends OperatorBase implements IOperator {
 	private static ERROR = Symbol("INTERCEPTED");
@@ -16,20 +15,27 @@ export class Interceptor extends OperatorBase implements IOperator {
 		super();
 	}
 
-	public middleware(): Promise<Error> {
-		return this.interceptOnResolve()
+	public middleware(): {id: symbol, promise: Promise<Error>} {
+		const interceptorId = Symbol('Requester.Interceptor.Id');
+
+		const promise = this.interceptOnResolve()
 			.catch(error => {
 				console.warn("An error occured during the interceptor promise, (do not reject interceptor promise)", error);
 				return Interceptor.PROMISE_NEVER;
 			})
 			.then<Error, Retry>(val => {
 				if (this.retryAfter) {
-					throw new Retry(this.retryAfter(), val);
+					throw new Retry(this.retryAfter(), val, this.keepSamePromiseOnRetry ? interceptorId : false);
 				}
 				if (!(val instanceof Error)) {
 					val = new Error(Interceptor.ERROR, val);
 				}
 				return val;
 			});
+
+		return {
+			id: interceptorId,
+			promise: promise
+		};
 	}
 }

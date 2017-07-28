@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, Subject } from "rxjs";
+import { Observable, Subscription, Subject } from "rxjs";
+import { findIndex } from "lodash";
 
 import { Inheritor, InheritedArrayCombiner, InheritedMapCombiner, Error, Retry } from "./helpers";
 import { METHODS } from "./interfaces";
@@ -11,6 +12,7 @@ type TListener = (event: RequesterEvent) => void;
 
 @Injectable()
 export class Requester<T = any> {
+	public static RETRYING_REJECTED = Symbol('Retrying.Rejected');
 	protected instance: Requester<T> = null;
 
 	@InheritedArrayCombiner()
@@ -47,75 +49,108 @@ export class Requester<T = any> {
 	 * Send Request
 	 */
 	public send<U = T>(): Observable<RequesterEvent<U>> {
-		const { listeners, operators } = this;
+		const { listeners } = this;
+		const processID = Symbol("Requester.Request.Id");
 
-		// Map Interceptor Promise Factories into Promises 
-		const interceptors = <Interceptor[]>operators
-			.filter(op => op instanceof Interceptor);
-
-		const eternalInterceptor$ = interceptors
-			.filter(op => op.keepSamePromiseOnRetry)
-			.map(Requester.mapToMiddleware);
-		
-		const temporaryInterceptors = interceptors
-			.filter(op => !op.keepSamePromiseOnRetry);
-
-		// Create Main Stream
 		const mainStream = new Observable<RequesterEvent<U>>(
 			subscriber => {
-				// Create Process Id
-				const processID = Symbol("Requester.Request.Id");
-
-				// Fire Start Event
 				subscriber.next(new ProcessStartedEvent(processID));
-
-				// Set Interceptors
-				const interceptors$ = Observable.fromPromise(Promise.race([...eternalInterceptor$, ...temporaryInterceptors.map(Requester.mapToMiddleware)]));
-
-				// Subscribe to interceptors
-				const interceptorSubscription = interceptors$
-					.subscribe({
-						next: error => {
-							subscriber.next(new InterceptedEvent(processID, error))
-							subscriber.error(error);
-						},
-						error: (retry: Retry) => {
-							subscriber.next(new InterceptedEvent(processID, retry.error));
-							subscriber.next(new RestartedEvent(processID));
-							// retry.then()
-						}
-					});
-				
-				const retryablePhase = this._send();
-
-				return () => {
-					interceptorSubscription.unsubscribe();
-				};
+				return () => {};
 			})
-			.share()
 			.do(onNext => {
-				// Call Event Handlers
 				const event: EVENTS = EVENTS[onNext.constructor.name];
 				listeners.get(event).forEach(handler => {
 					handler(onNext);
 				});
 			});
+		
+		const interceptorStream = this.interceptorStream<U>(processID);
 
-		// Return Main Stream
-		return mainStream;
+		// Return Merged Stream
+		return mainStream.merge(interceptorStream).share();
 	}
 
-	private _send<U = T>(): Observable<RequesterEvent<U>> {
-		const phase = new Subject<RequesterEvent<U>>();
+	private interceptorStream<U = T>(id: symbol): Subject<RequesterEvent<U>> {
+		const { operators } = this;
+		const stream = new Subject<RequesterEvent<U>>();
+		const self = this;
 
-		return phase;
+		// Map Interceptor Promise Factories into Promises
+		const interceptors = <Interceptor[]>operators
+			.filter(op => op instanceof Interceptor);
+
+		const eternalInterceptors = interceptors
+			.filter(op => op.keepSamePromiseOnRetry)
+			.map(Requester.mapInterceptor);
+		
+		const temporaryInterceptors = interceptors
+			.filter(op => !op.keepSamePromiseOnRetry);
+
+		// Start Intercepting Progress
+		startInterceptor();
+		
+		// Return Stream
+		return stream;
+
+		// Cycling Function
+		function startInterceptor(restarterId?: symbol) :void {
+			let retryableSubscription: Subscription;
+			let interceptorSubscription: Subscription;
+
+			// Remove the interceptor which restarts the process
+			if (restarterId) {
+				const index = findIndex(eternalInterceptors, {id: restarterId});
+				eternalInterceptors.splice(index, 1);
+			}
+
+			const interceptorPromises = [
+					...eternalInterceptors,
+					...temporaryInterceptors.map(Requester.mapInterceptor)
+				].map(op => op.promise);
+
+			const interceptors$ = Observable.fromPromise(Promise.race(interceptorPromises));
+
+			// Pipe Retryable Observable to the main stream
+			retryableSubscription = self.retryableStream<U>(id).subscribe({
+				next: val => stream.next(val),
+				error: err => stream.error(err),
+				complete: () => {
+					interceptorSubscription.unsubscribe();
+					stream.complete();
+				}
+			});
+
+			// Subscribe to interceptors
+			interceptorSubscription = interceptors$
+				.subscribe({
+					next: error => {
+						stream.next(new InterceptedEvent(id, error))
+						stream.error(error);
+						retryableSubscription.unsubscribe();
+					},
+					error: (retry: Retry) => {
+						stream.next(new InterceptedEvent(id, retry.error));
+						stream.next(new RestartedEvent(id));
+						retryableSubscription.unsubscribe();
+						retry.promise
+							.then(() => {startInterceptor(retry.data as symbol)})
+							.catch(err => {
+								stream.error(new Error(Requester.RETRYING_REJECTED, err));
+							});
+					}
+				});
+		}
+	}
+
+	private retryableStream<U = T>(id: symbol): Observable<RequesterEvent<U>> {
+		return new Observable();
 	}
 
 	public clone(): Requester<T> {
 		return Requester.createInstance(this);
 	}
 
-	private static mapToMiddleware(operator: IOperator): Promise<any> {
+	private static mapInterceptor(operator: Interceptor): { id: symbol; promise: Promise<Error> } {
 		return operator.middleware();
 	}
 
