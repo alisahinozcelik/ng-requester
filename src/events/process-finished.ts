@@ -1,10 +1,10 @@
 import { RequesterEvent } from "./requester-event";
-import { Response } from "../helpers";
+import { Response, Error } from "../helpers";
 
 export class ProcessFinishedEvent<T> extends RequesterEvent<T> {
 	constructor(
 		processId: symbol,
-		response: Response<T>
+		public response: Response<T> | Error
 	) {
 		super(processId);
 	}

@@ -1,6 +1,5 @@
 import { IOperator, OperatorBase } from "./operator";
-import { Error } from "../helpers/error";
-import { Retry } from "./retry";
+import { Error, Retry } from "../helpers";
 
 export class Guard extends OperatorBase implements IOperator {
 	private static ERROR_TYPE = Symbol("CATCHED_ON_GUARD");

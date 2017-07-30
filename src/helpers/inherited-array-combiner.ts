@@ -4,7 +4,8 @@ export function InheritedArrayCombiner() {
 
 		Object.defineProperty(target, propertyKey, {
 			get: function() {
-				return [...this.instance[propertyKey], ...ownValue];
+				const inherited = this.instance ? this.instance[propertyKey] : [];
+				return [...inherited, ...ownValue];
 			},
 			set: function(val: any[]) {
 				ownValue.push(...val);

@@ -1,4 +1,5 @@
 export * from './process-started';
+export * from './passed-guards';
 export * from './request-fired';
 export * from './on-upload';
 export * from './on-download';
@@ -14,6 +15,7 @@ export * from './restarted';
 export * from './requester-event';
 
 import { ProcessStartedEvent } from './process-started';
+import { PassedGuardsEvent } from './passed-guards';
 import { RequestFiredEvent } from './request-fired';
 import { OnUploadEvent } from './on-upload';
 import { OnDownloadEvent } from './on-download';
@@ -30,6 +32,7 @@ import { RequesterEvent } from "./requester-event";
 
 export enum EVENTS {
 	ProcessStartedEvent,
+	PassedGuardsEvent,
 	RequestFiredEvent,
 	OnUploadEvent,
 	OnDownloadEvent,
@@ -44,6 +47,7 @@ export enum EVENTS {
 
 export const ALL_EVENTS: Function[] = [
 	ProcessStartedEvent,
+	PassedGuardsEvent,
 	RequestFiredEvent,
 	OnUploadEvent,
 	OnDownloadEvent,

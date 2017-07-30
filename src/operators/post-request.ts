@@ -1,6 +1,5 @@
 import { IOperator, OperatorBase } from "./operator";
-import { Error } from "../helpers/error";
-import { Retry } from "./retry";
+import { Error, Retry } from "../helpers";
 
 export class PostRequest<T, U = T> extends OperatorBase implements IOperator {
 	private static ERROR = Symbol("Stopped on Post-Request Operation");

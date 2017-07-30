@@ -1,5 +1,4 @@
 export * from './operator';
-export * from './retry';
 
 export * from './on-start';
 export * from './guard';
