@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "play": "webpack-dev-server --config playground/webpack.js",
-    "test": "karma start ./tasks/karma/karma.conf.js --browsers=Chrome --single-run=false --debug",
+    "test:debug": "karma start ./tasks/karma/karma.conf.js --browsers=Chrome --single-run=false --debug",
+    "test": "karma start ./tasks/karma/karma.conf.js",
     "document:serve": "compodoc -p ./tsconfig.json -w -s"
   },
   "private": false,

@@ -19,6 +19,13 @@ interface IInterceptorMiddlewareValue {
 	promise: Promise<Error>;
 }
 
+interface IConfigurableProperties {
+	method?: METHODS;
+	host?: string;
+	url?: string;
+	responseType?: RESPONSE_TYPES;
+}
+
 @Injectable()
 export class Requester<T = any> {
 
@@ -63,7 +70,7 @@ export class Requester<T = any> {
 	 * Request body to send
 	 */
 	@Inheritor.Basic(null)
-	public data: any;
+	public body: any;
 
 	/**
 	 * Request Headers
@@ -82,6 +89,47 @@ export class Requester<T = any> {
 	 */
 	@Inheritor.Basic(RESPONSE_TYPES.json)
 	public responseType: RESPONSE_TYPES;
+
+	/**
+	 * Request
+	 */
+	public request<U = T>(method: METHODS, url: string, options: IRequesterOptions = {}): Observable<RequesterEvent<U>> {
+		const clone = Requester.createInstance(this);
+		const { body, headers, params, responsType } = options;
+
+		if (body) { clone.body = body; }
+		if (headers) { clone.headers = headers; }
+		if (params) { clone.params = params; }
+		if (responsType !== undefined) { clone.responseType = responsType; }
+
+		clone.method = method;
+		return clone.send();
+	}
+
+	/**
+	 * Get Request
+	 * @param url Url to send request
+	 * @param options Request Options
+	 */
+	public get<U = T>(url: string, options?: IRequesterOptions): Observable<RequesterEvent<U>> {
+		return this.request(METHODS.GET, url, options);
+	}
+
+	public post<U = T>(url: string, options?: IRequesterOptions): Observable<RequesterEvent<U>> {
+		return this.request(METHODS.POST, url, options);
+	}
+
+	public set<U = T>(params: IConfigurableProperties): Requester<U> {
+		const clone = Requester.createInstance(this);
+		const { host, url, method, responseType } = params;
+
+		if (host) { clone.host = host; }
+		if (url) { clone.url = url; }
+		if (method !== undefined) { clone.method = method; }
+		if (responseType !== undefined) { clone.responseType = responseType; }
+
+		return clone;
+	}
 
 	/**
 	 * Send Request
@@ -153,7 +201,7 @@ export class Requester<T = any> {
 						.map((op: PreRequest) => op.middleware);
 
 					return promiseFactoryChainer(preRequests, {
-						body: this.data,
+						body: this.body,
 						headers: this.headers,
 						params: this.params,
 						responsType: this.responseType
@@ -163,13 +211,11 @@ export class Requester<T = any> {
 				.then(options => {
 					const promise = new OpenPromise<HttpResponse<U>>();
 
-					const request = new HttpRequest<U>(METHODS[this.method], this.host + '/' + this.url, this.data, {
+					const request = new HttpRequest<U>(METHODS[this.method], this.host + '/' + this.url, this.body, {
 						headers: this.headers,
 						responseType: (RESPONSE_TYPES[this.responseType] as 'arraybuffer'),
 						params: this.params
 					});
-
-					subscriber.next(new RequestFiredEvent(processID, request));
 
 					const requestSubscription = this.client
 						.request(request)
@@ -195,12 +241,14 @@ export class Requester<T = any> {
 								promise.resolve(err);
 							}
 						});
-
+					
 					subscriber.add(() => {
 						requestSubscription.unsubscribe();
 						subscriber.next(new CancelledEvent(processID));
 						promise.reject(new Error(Requester.CANCELLED, null));
 					});
+
+					subscriber.next(new RequestFiredEvent(processID, request));
 
 					return promise.promise;
 				})
