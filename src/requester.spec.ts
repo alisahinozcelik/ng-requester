@@ -5,6 +5,7 @@ import { Subject, Observable, Subscription } from 'rxjs';
 
 import { RequesterModule } from "./requester.module";
 import { Requester } from "./requester";
+import { METHODS, RESPONSE_TYPES } from "./interfaces";
 import { RequestFiredEvent } from "./events";
 
 describe("Service: Requester", () => {
@@ -49,6 +50,35 @@ describe("Service: Requester", () => {
 				.catch(() => {
 					fail();
 				});
+		})();
+	});
+
+	it("should request with passed config", done => {
+		inject([Requester], (requester: Requester<any>) => {
+
+			const obs = requester
+				.set({
+					host: 'http://www.test.com',
+					url: 'api/fetch',
+					method: METHODS.DELETE,
+					responseType: RESPONSE_TYPES.arraybuffer
+				})
+				.send();
+
+			obs.filter(ev => ev instanceof RequestFiredEvent)
+				.subscribe(res => {
+					console.log(res);
+					http.match(req => {
+						console.log(req);
+						return req.url === 'http://www.test.com/api/fetch'
+							&& req.method === 'DELETE'
+							&& req.responseType === 'arraybuffer'
+					}).forEach(req => {req.flush('ok')});
+				});
+			
+			obs.toPromise()
+				.then(() => done())
+				.catch(() => fail());
 		})();
 	});
 });

@@ -219,7 +219,6 @@ export class Requester<T = any> {
 
 					const requestSubscription = this.client
 						.request(request)
-						.filter(Requester.ngRequestFilter)
 						.subscribe({
 							next: res => {
 								switch (res.type) {
@@ -229,9 +228,11 @@ export class Requester<T = any> {
 									case HttpEventType.UploadProgress:
 										subscriber.next(new OnUploadEvent(processID, (res as HttpProgressEvent & { type: HttpEventType.UploadProgress })))
 									break;
-									default:
+									case HttpEventType.Response:
 										subscriber.next(new RespondedEvent(processID, res as HttpResponse<U>));
 										promise.resolve(res as HttpResponse<U>);
+									break;
+									default:
 								}
 							},
 							error: err => {
@@ -242,11 +243,15 @@ export class Requester<T = any> {
 							}
 						});
 					
-					subscriber.add(() => {
-						requestSubscription.unsubscribe();
-						subscriber.next(new CancelledEvent(processID));
-						promise.reject(new Error(Requester.CANCELLED, null));
-					});
+					subscriber.add(unsubscriber);
+
+					function unsubscriber() {
+						if (!promise.finished) {
+							requestSubscription.unsubscribe();
+							subscriber.next(new CancelledEvent(processID));
+							promise.reject(new Error(Requester.CANCELLED, null));
+						}
+					}
 
 					subscriber.next(new RequestFiredEvent(processID, request));
 
@@ -320,8 +325,11 @@ export class Requester<T = any> {
 
 		// Pipe Retryable Observable to the main stream
 		retryableSubscription = this.retryableStream<U>(processID).subscribe({
-			next: val => stream.next(val),
+			next: val => {
+				stream.next(val);
+			},
 			error: err => {
+				console.info(err);
 				if (err instanceof Retry) {
 					stream.next(new RestartedEvent(processID));
 					err.promise
