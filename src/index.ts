@@ -7,14 +7,12 @@ import 'weakmap-polyfill';
 import 'reflect-metadata';
 
 // Lib
-export * from './requester2';
+export * from './requester';
 export * from './requester.module';
 
 export * from './operators/error-handler';
 export * from './operators/guard';
 export * from './operators/interceptor';
-export * from './operators/on-end';
-export * from './operators/on-start';
 export * from './operators/post-request';
 export * from './operators/pre-request';
 export * from './helpers/error';

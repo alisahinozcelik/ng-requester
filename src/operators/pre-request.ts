@@ -1,5 +1,5 @@
 import { IOperator, OperatorBase } from "./operator";
-import { IRequesterOptions } from "../interfaces";
+import { IRequesterOptionsRequired } from "../interfaces";
 import { Error } from "../helpers/error";
 
 export class PreRequest extends OperatorBase implements IOperator {
@@ -10,12 +10,12 @@ export class PreRequest extends OperatorBase implements IOperator {
 	 * @param modifier Callback function, gets current options as parameter, must return modified options
 	 */
 	constructor(
-		private modifier: (options: IRequesterOptions) => IRequesterOptions | Promise<IRequesterOptions>
+		private modifier: (options: IRequesterOptionsRequired) => IRequesterOptionsRequired | Promise<IRequesterOptionsRequired>
 	) {
 		super();
 	}
 
-	public middleware(options: IRequesterOptions):Promise<IRequesterOptions> {
+	public middleware(options: IRequesterOptionsRequired):Promise<IRequesterOptionsRequired> {
 		const result = this.modifier(options);
 		return Promise.resolve()
 			.then(() => result)

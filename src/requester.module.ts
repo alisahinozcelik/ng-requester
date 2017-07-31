@@ -4,7 +4,7 @@ import { HttpClientTestingModule } from "@angular/common/http/testing";
 import { Observable } from "rxjs";
 
 import { ProcessFinishedEvent } from "./events";
-import { Requester } from "./requester2";
+import { Requester } from "./requester";
 
 (() => {
 	const original = Observable.prototype.toPromise;

@@ -5,8 +5,8 @@ export function promiseChainer(arr: Promise<any>[]): Promise<any> {
 }
 
 export function promiseFactoryChainer<T = any>(
-	arr: TPromiseFactory<any>[],
-	initialParam?: any,
+	arr: TPromiseFactory<T>[],
+	initialParam?: T,
 	withSameValue: boolean = false
 	): Promise<T> {
 	return arr.reduce((prev, curr: TPromiseFactory<any>) => prev.then(res => curr(withSameValue ? initialParam : res)), Promise.resolve(initialParam));

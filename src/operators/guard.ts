@@ -2,7 +2,7 @@ import { IOperator, OperatorBase } from "./operator";
 import { Error, Retry } from "../helpers";
 
 export class Guard extends OperatorBase implements IOperator {
-	private static ERROR_TYPE = Symbol("CATCHED_ON_GUARD");
+	private static ERROR_TYPE = Symbol("Guard.Catched");
 
 	constructor(
 		private verifier: () => Promise<boolean> | boolean,

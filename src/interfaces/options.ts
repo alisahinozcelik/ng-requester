@@ -8,3 +8,10 @@ export interface IRequesterOptions {
 	params?: HttpParams;
 	responsType?: RESPONSE_TYPES;
 }
+
+export interface IRequesterOptionsRequired extends IRequesterOptions {
+	body: any;
+	headers: HttpHeaders;
+	params: HttpParams;
+	responsType: RESPONSE_TYPES;
+}

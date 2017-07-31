@@ -1,284 +1,339 @@
-// import { Injectable } from "@angular/core";
-// import { HttpClient, HttpHeaders, HttpParams } from "@angular/common/http";
-// import { Observable } from "rxjs";
+import { Injectable } from "@angular/core";
+import { HttpClient, HttpHeaders, HttpParams, HttpRequest, HttpEvent, HttpEventType, HttpProgressEvent, HttpResponse } from "@angular/common/http";
+import { Observable, Subscription, Subject } from "rxjs";
+import { findIndex } from "lodash";
 
-// import { OperatorBase, IOperator, OnStart, Guard, PreRequest, Interceptor, PostRequest, Retry, ErrorHandler, OnEnd } from "./operators";
-// import { Error } from "./helpers/error";
-// import { IRequesterOptions, METHODS, RESPONSE_TYPES } from "./interfaces";
-// import { promiseFactoryChainer } from "./utils/promise-chainer";
-// import { OpenPromise } from "./utils/open-promise";
+import { Inheritor, Error, Retry, Response } from "./helpers";
+import { METHODS, RESPONSE_TYPES, IRequesterOptions, IRequesterOptionsRequired } from "./interfaces";
+import { ALL_EVENTS, RequesterEvent, EVENTS, ProcessStartedEvent, InterceptedEvent,
+					RestartedEvent, RequestFiredEvent, PassedGuardsEvent, ProcessFinishedEvent,
+					OnDownloadEvent, OnUploadEvent, RespondedEvent, CancelledEvent, AbortedEvent } from "./events";
+import { OperatorBase, Interceptor, IOperator, Guard, PreRequest, PostRequest } from "./operators";
+import { promiseFactoryChainer } from "./utils/promise-chainer";
+import { OpenPromise } from "./utils/open-promise";
 
-// @Injectable()
-// export class Requester<T = any> {
-// 	protected operators: OperatorBase[] = [];
-// 	protected method: METHODS = METHODS.GET;
-// 	protected host: string = "";
-// 	protected url: string = "";
-// 	protected options: IRequesterOptions = {};
+type TListener = (event: RequesterEvent) => void;
 
-// 	private static ERROR = Symbol("UNKNOWN_ERROR");
+interface IInterceptorMiddlewareValue {
+	id: symbol;
+	promise: Promise<Error>;
+}
 
-// 	constructor(
-// 		protected client: HttpClient
-// 	) {
-// 	}
+@Injectable()
+export class Requester<T = any> {
 
-// 	/**
-// 	 * Change url of the request
-// 	 * @param url Url to set
-// 	 */
-// 	public setUrl<U = T>(url: string): Requester<U> {
-// 		return Requester.clone<U>(this, {url: url});
-// 	}
+	public static RETRYING_REJECTED = Symbol('Retrying.Rejected');
+	public static UNKNOWN_ERROR = Symbol('Unknown.Error');
+	public static RESPONSE_OK = Symbol('Response.Ok');
+	public static CANCELLED = Symbol('Cancelled');
 
-// 	/**
-// 	 * Change host of the request
-// 	 * @param host Host to set
-// 	 */
-// 	public setHost<U = T>(host: string): Requester<U> {
-// 		return Requester.clone<U>(this, {host: host});
-// 	}
+	protected instance: Requester<T> = null;
 
-// 	/**
-// 	 * Change method of the request
-// 	 * @param method Method to reset request method
-// 	 */
-// 	public setMethod<U = T>(method: METHODS): Requester<U> {
-// 		return Requester.clone<U>(this, {method: method});
-// 	}
+	@Inheritor.ArrayCombiner(this)
+	private operators: OperatorBase[];
 
-// 	/**
-// 	 * Replaces old options with the new passed
-// 	 * (Be careful, old options will be ignored)
-// 	 * @param options New Options to define
-// 	 */
-// 	public setOptions<U = T>(options: IRequesterOptions): Requester<U> {
-// 		const clone = Requester.clone(this);
-// 		clone.options = options;
-// 		return clone;
-// 	}
+	@Inheritor.MapCombiner(this)
+	private listeners: Map<EVENTS, TListener[]>;
 
-// 	/**
-// 	 * Replaces old operators with the new passed
-// 	 * (Be careful, old operators will be ignored)
-// 	 * @param options New Options to define
-// 	 */
-// 	public setOperators<U = T>(operators: OperatorBase[]): Requester<U> {
-// 		const clone = Requester.clone(this);
-// 		clone.operators = operators;
-// 		return clone;
-// 	}
-	
-// 	/**
-// 	 * Modify the options by passing a modifier function
-// 	 * @param modifier A function which gets present options as first parameter and has to return new modified options
-// 	 */
-// 	public modifyOptions<U = T>(modifier: (options: IRequesterOptions) => IRequesterOptions): Requester<U> {
-// 		const options = modifier(Requester.cloneOptions(this.options, {}));
-// 		const clone = Requester.clone(this);
-// 		clone.options = options;
+	constructor(
+		private client: HttpClient
+	) {}
 
-// 		return clone;
-// 	}
+	/**
+	 * The domain part of request url
+	 * Such as "http://google.com", "www.xxx.com", "localhost:4500"
+	 */
+	@Inheritor.Basic("")
+	public host: string;
 
-// 	/**
-// 	 * Modify the operators by passing a modifier function
-// 	 * @param modifier A function which gets present operators as first parameter and has to return a new operators array
-// 	 */
-// 	public modifyOperators<U = T>(modifier: (operators: OperatorBase[]) => OperatorBase[]): Requester<U> {
-// 		const operators = modifier([...this.operators]);
-// 		const clone = Requester.clone(this);
-// 		clone.operators = operators;
+	/**
+	 * The path part of request url
+	 * Such as "v2/availableLimit", "users"
+	 */
+	@Inheritor.Basic("")
+	public url: string;
 
-// 		return clone;
-// 	}
+	/**
+	 * The method of the request
+	 */
+	@Inheritor.Basic(METHODS.GET)
+	public method: METHODS;
 
-// 	public addOperator<U = T>(...operators: OperatorBase[]): Requester<U> {
-// 		return Requester.clone<U>(this, { operators: [...this.operators, ...operators]});
-// 	}
+	/**
+	 * Request body to send
+	 */
+	@Inheritor.Basic(null)
+	public data: any;
 
-// 	public request<U = T>(method: METHODS, url: string, options: IRequesterOptions = null): Promise<U> {
-// 		return Requester.clone<U>(this, {method: method, url: url, options: options}).send();
-// 	}
+	/**
+	 * Request Headers
+	 */
+	@Inheritor.Basic(new HttpHeaders())
+	public headers: HttpHeaders;
 
-// 	public get<U = T>(url: string, options: IRequesterOptions = null): Promise<U> {
-// 		return this.request(METHODS.GET, url, options);
-// 	}
+	/**
+	 * Request Params
+	 */
+	@Inheritor.Basic(new HttpParams())
+	public params: HttpParams;
 
-// 	public post<U = T>(url: string, options: IRequesterOptions = null): Promise<U> {
-// 		return this.request(METHODS.POST, url, options);
-// 	}
+	/**
+	 * Response Type
+	 */
+	@Inheritor.Basic(RESPONSE_TYPES.json)
+	public responseType: RESPONSE_TYPES;
 
-// 	public put<U = T>(url: string, options: IRequesterOptions = null): Promise<U> {
-// 		return this.request(METHODS.PUT, url, options);
-// 	}
+	/**
+	 * Send Request
+	 */
+	public send<U = T>(): Observable<RequesterEvent<U>> {
+		const { listeners } = this;
+		const processID = Symbol("Requester.Request.Id");
 
-// 	public patch<U = T>(url: string, options: IRequesterOptions = null): Promise<U> {
-// 		return this.request(METHODS.PATCH, url, options);
-// 	}
-
-// 	public delete<U = T>(url: string, options: IRequesterOptions = null): Promise<U> {
-// 		return this.request(METHODS.DELETE, url, options);
-// 	}
-
-// 	public send<U = T>(): Promise<U> {
-// 		const requestId = Symbol('Requester.Request');
-// 		const self = this;
-
-// 		function runCallbacks(type: Function, param: any) {
-// 			self.operators
-// 				.filter(operator => operator instanceof type)
-// 				.forEach((operator: IOperator) => {
-// 					operator.middleware(param);
-// 				});
-// 		}
+		const mainStream = new Observable<RequesterEvent<U>>(
+			subscriber => {
+				subscriber.next(new ProcessStartedEvent(processID));
+				subscriber.complete();
+				return () => {};
+			})
+			.do(onNext => {
+				const event: EVENTS = EVENTS[onNext.constructor.name];
+				(listeners.get(event) || []).forEach(handler => {
+					handler(onNext);
+				});
+			});
 		
-// 		runCallbacks(OnStart, requestId);
+		const interceptorStream = this.interceptorStream<U>(processID);
+
+		// Return Merged Stream
+		return mainStream.merge(interceptorStream).share();
+	}
+
+	private interceptorStream<U = T>(processID: symbol): Subject<RequesterEvent<U>> {
+		const { operators } = this;
+		const stream = new Subject<RequesterEvent<U>>();
+
+		// Map Interceptor Promise Factories into Promises
+		const interceptors = <Interceptor[]>operators
+			.filter(op => op instanceof Interceptor);
+
+		const eternalInterceptors = interceptors
+			.filter(op => op.keepSamePromiseOnRetry)
+			.map(Requester.mapInterceptor);
 		
-// 		return this._send<U>()
-// 			.catch(error => {
-// 				if (!(error instanceof Error)) {
-// 					error = new Error(Requester.ERROR, error);
-// 				}
-// 				throw error;
-// 			})
-// 			.catch((error: Error) => {
-// 				runCallbacks(ErrorHandler, error);
-// 				runCallbacks(OnEnd, requestId);
-// 				throw error;
-// 			})
-// 			.then(res => {
-// 				runCallbacks(OnEnd, requestId);
-// 				return res;
-// 			});
-// 	}
+		const temporaryInterceptors = interceptors
+			.filter(op => !op.keepSamePromiseOnRetry);
 
-// 	private _send<U>(): Promise<U> {
-// 		const guards = this.operators
-// 			.filter(op => op instanceof Guard)
-// 			.map((op: Guard) => op.middleware());
-
-// 		return Promise.all(guards)
-// 			.then<IRequesterOptions>(() => {
-// 				const preRequestMiddlewares = this.operators
-// 					.filter(val => val instanceof PreRequest)
-// 					.map((val: PreRequest) => val.middleware);
-
-// 				return promiseFactoryChainer<IRequesterOptions>(preRequestMiddlewares, Requester.cloneOptions(this.options));
-// 			})
-// 			.then<U>(options => {
-// 				// Returning Promise
-// 				const promise = new OpenPromise<U>();
-
-// 				// Format Request Options for Angular
-// 				const requestOptions: { responsType: string; } & IRequesterOptions = Object.assign({}, options, { responsType: RESPONSE_TYPES[options.responsType] });
-
-// 				// Send Actual Request
-// 				const subscription = (this.client.request(METHODS[this.method], `${this.host}/${this.url}`, requestOptions) as Observable<U>)
-// 					.subscribe({
-// 						next: res => {
-// 							promise.resolve(res);
-// 						},
-// 						error: err => {
-// 							promise.reject(err);
-// 						}
-// 					});
-				
-// 				// Run Interceptors
-// 				const interceptors = this.operators
-// 					.filter(op => op instanceof Interceptor)
-// 					.map((op: Interceptor) => Observable.fromPromise(op.middleware()));
-				
-// 				const interceptorSubs = Observable.merge(...interceptors)
-// 					.first()
-// 					.subscribe({
-// 						next: res => {
-// 							subscription.unsubscribe();
-// 							promise.reject(res);
-// 						},
-// 						error: err => {promise.reject(err);}
-// 					});
-
-// 				// Cancel Interceptors After Response
-// 				function unsubscribe() {
-// 					interceptorSubs.unsubscribe();
-// 				}
-
-// 				promise.promise
-// 					.then(unsubscribe)
-// 					.catch(unsubscribe);
-
-// 				return promise.promise;
-// 			})
-// 			.then<U>(val => {
-// 				const postRequestModifiers = this.operators
-// 					.filter(op => op instanceof PostRequest)
-// 					.map((op: PostRequest<U>) => op.middleware);
-				
-// 				return promiseFactoryChainer<U>(postRequestModifiers, val);
-// 			})
-// 			.catch<any>((error) => {
-// 				if (error instanceof Retry) {
-// 					return error.promise.then(() => this._send());
-// 				}
-// 				throw error;
-// 			});
-// 	}
-
-// 	// Static Methods
-// 	/**
-// 	 * Cloning Function of Requester
-// 	 * @param referance Requester Referance to clone its properties
-// 	 * @param cloningProperties Generates and clones merged values of old and new values which given
-// 	 */
-// 	protected static clone<T>(
-// 		referance: Requester<T>,
-// 		cloningProperties: {
-// 			method?: METHODS;
-// 			url?: string;
-// 			host?: string;
-// 			options?: IRequesterOptions;
-// 			operators?: OperatorBase[];
-// 		} = {}
-// 	): Requester<T> {
-
-// 		const requester = new Requester<T>(referance.client);
-// 		const {method, url, host, options, operators} = cloningProperties;
-
-// 		requester.method = method !== undefined ? method : referance.method;
-// 		requester.host = host !== undefined ? host : referance.host;
-// 		requester.url = url !== undefined ? url : referance.url;
-
-// 		requester.options = Requester.cloneOptions(referance.options, (options || {}));
-// 		requester.operators = [...referance.operators, ...operators];
-
-// 		return requester;
-// 	}
-
-// 	/**
-// 	 * Clones Request Options
-// 	 * @param oldOptions 
-// 	 * @param newOptions 
-// 	 */
-// 	protected static cloneOptions(oldOptions: IRequesterOptions, newOptions: IRequesterOptions = {}): IRequesterOptions {
-// 		const options = Object.assign({}, oldOptions, newOptions);
-
-// 		// Handle Headers
-// 		options.headers = oldOptions.headers || new HttpHeaders();
-// 		const newHeaders = newOptions.headers || new HttpHeaders();
+		// Start Intercepting Progress
+		this.interceptorCycle(processID, stream, eternalInterceptors, temporaryInterceptors);
 		
-// 		newHeaders.keys().forEach(key => {
-// 			options.headers.append(key, newHeaders.getAll(key));
-// 		});
+		// Return Stream
+		return stream;
+	}
 
-// 		// Handle Params
-// 		options.params = oldOptions.params || new HttpParams();
-// 		const newParams = newOptions.params || new HttpParams();
+	private retryableStream<U = T>(processID: symbol): Observable<RequesterEvent<U>> {
+		const { operators } = this;
 
-// 		newParams.keys().forEach(key => {
-// 			options.headers.append(key, newParams.getAll(key));
-// 		});
+		return new Observable<RequesterEvent<U>>(subscriber => {
+			
+			Promise.resolve()
+				// Guards
+				.then(() => {
+					const guards = operators
+						.filter(op => op instanceof Guard)
+						.map((op: Guard) => op.middleware()); 
+					return Promise.all(guards);
+				})
+				// Pre-request Operators
+				.then(() => {
+					subscriber.next(new PassedGuardsEvent(processID));
 
-// 		return options;
-// 	}
-// }
+					const preRequests = operators
+						.filter(op => op instanceof PreRequest)
+						.map((op: PreRequest) => op.middleware);
+
+					return promiseFactoryChainer(preRequests, {
+						body: this.data,
+						headers: this.headers,
+						params: this.params,
+						responsType: this.responseType
+					});
+				})
+				// Send Actual Request
+				.then(options => {
+					const promise = new OpenPromise<HttpResponse<U>>();
+
+					const request = new HttpRequest<U>(METHODS[this.method], this.host + '/' + this.url, this.data, {
+						headers: this.headers,
+						responseType: (RESPONSE_TYPES[this.responseType] as 'arraybuffer'),
+						params: this.params
+					});
+
+					subscriber.next(new RequestFiredEvent(processID, request));
+
+					const requestSubscription = this.client
+						.request(request)
+						.filter(Requester.ngRequestFilter)
+						.subscribe({
+							next: res => {
+								switch (res.type) {
+									case HttpEventType.DownloadProgress:
+										subscriber.next(new OnDownloadEvent(processID, (res as HttpProgressEvent & { type: HttpEventType.DownloadProgress })))
+									break;
+									case HttpEventType.UploadProgress:
+										subscriber.next(new OnUploadEvent(processID, (res as HttpProgressEvent & { type: HttpEventType.UploadProgress })))
+									break;
+									default:
+										subscriber.next(new RespondedEvent(processID, res as HttpResponse<U>));
+										promise.resolve(res as HttpResponse<U>);
+								}
+							},
+							error: err => {
+								err.body = err.error;
+								err.type = HttpEventType.Response;
+								subscriber.next(new RespondedEvent(processID, err as HttpResponse<U>));
+								promise.resolve(err);
+							}
+						});
+
+					subscriber.add(() => {
+						requestSubscription.unsubscribe();
+						subscriber.next(new CancelledEvent(processID));
+						promise.reject(new Error(Requester.CANCELLED, null));
+					});
+
+					return promise.promise;
+				})
+				// Post Request Operators
+				.then(response => {
+					const postRequests = operators
+						.filter(op => op instanceof PostRequest)
+						.map((op: PostRequest<U>) => op.middleware);
+					
+					return promiseFactoryChainer(postRequests, new Response(Requester.RESPONSE_OK, response));
+				})
+				// Map Raw response to parsed body
+				.then(response => {
+					const parsedResponse: Response<U> = (response as Response<any>);
+					parsedResponse.data = response.data.body;
+					subscriber.next(new ProcessFinishedEvent(processID, parsedResponse));
+					subscriber.complete();
+				})
+				.catch(err => {
+					if (!(err instanceof Error)) {
+						err = new Error(Requester.UNKNOWN_ERROR, err);
+					}
+
+					if (!(err instanceof Retry)) {
+						subscriber.next(new AbortedEvent(processID, err));
+						subscriber.next(new ProcessFinishedEvent(processID, err));
+					}
+
+					subscriber.error(err);
+				});
+
+			return () => {}
+		});
+	}
+
+	public clone(): Requester<T> {
+		return Requester.createInstance(this);
+	}
+
+	public addOperator(...operators: IOperator[]): Requester<T> {
+		const clone = this.clone();
+		clone.operators = operators;
+		return clone;
+	}
+
+	private interceptorCycle<U = T>(
+		processID: symbol,
+		stream: Subject<RequesterEvent<U>>,
+		eternalInterceptors: IInterceptorMiddlewareValue[],
+		temporaryInterceptors: Interceptor[],
+		restarterID?: symbol
+	): void {
+
+		let retryableSubscription: Subscription;
+		let interceptorSubscription: Subscription;
+
+		// Remove the interceptor which restarts the process
+		if (restarterID) {
+			const index = findIndex(eternalInterceptors, {id: restarterID});
+			eternalInterceptors.splice(index, 1);
+		}
+
+		const interceptorPromises = [
+				...eternalInterceptors,
+				...temporaryInterceptors.map(Requester.mapInterceptor)
+			].map(op => op.promise);
+
+		const interceptors$ = Observable.fromPromise(Promise.race(interceptorPromises));
+
+		// Pipe Retryable Observable to the main stream
+		retryableSubscription = this.retryableStream<U>(processID).subscribe({
+			next: val => stream.next(val),
+			error: err => {
+				if (err instanceof Retry) {
+					stream.next(new RestartedEvent(processID));
+					err.promise
+						.then(() => {
+							this.interceptorCycle(processID, stream, eternalInterceptors, temporaryInterceptors);
+						})
+						.catch(err => {
+							stream.error(new Error(Requester.RETRYING_REJECTED, err));
+						});
+				} else {
+					stream.error(err);
+				}
+			},
+			complete: () => {
+				interceptorSubscription.unsubscribe();
+				stream.complete();
+			}
+		});
+
+		// Subscribe to interceptors
+		interceptorSubscription = interceptors$
+			.subscribe({
+				next: error => {
+					stream.next(new InterceptedEvent(processID, error))
+					stream.error(error);
+					retryableSubscription.unsubscribe();
+				},
+				error: (retry: Retry) => {
+					stream.next(new InterceptedEvent(processID, retry.error));
+					stream.next(new RestartedEvent(processID));
+					retryableSubscription.unsubscribe();
+					retry.promise
+						.then(() => {
+							this.interceptorCycle(processID, stream, eternalInterceptors, temporaryInterceptors, retry.data as symbol);
+						})
+						.catch(err => {
+							stream.error(new Error(Requester.RETRYING_REJECTED, err));
+						});
+				}
+			});
+	}
+
+	private static mapInterceptor(operator: Interceptor): IInterceptorMiddlewareValue {
+		return operator.middleware();
+	}
+
+	private static ngRequestFilter<U>(res: HttpEvent<U>): boolean {
+		switch (res.type) {
+			case HttpEventType.UploadProgress:
+			case HttpEventType.DownloadProgress:
+			case HttpEventType.Response:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	protected static createInstance<T>(instance: Requester<T>): Requester<T> {
+		const created = new Requester(instance.client);
+		created.instance = instance;
+		return created;
+	}
+}

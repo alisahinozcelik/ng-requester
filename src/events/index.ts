@@ -4,7 +4,6 @@ export * from './request-fired';
 export * from './on-upload';
 export * from './on-download';
 export * from './responded';
-export * from './body-parsed';
 export * from './process-finished';
 
 export * from './aborted';
@@ -20,7 +19,6 @@ import { RequestFiredEvent } from './request-fired';
 import { OnUploadEvent } from './on-upload';
 import { OnDownloadEvent } from './on-download';
 import { RespondedEvent } from './responded';
-import { BodyParsedEvent } from './body-parsed';
 import { ProcessFinishedEvent } from './process-finished';
 
 import { AbortedEvent } from './aborted';
@@ -37,7 +35,6 @@ export enum EVENTS {
 	OnUploadEvent,
 	OnDownloadEvent,
 	RespondedEvent,
-	BodyParsedEvent,
 	ProcessFinishedEvent,
 	AbortedEvent,
 	CancelledEvent,
@@ -52,7 +49,6 @@ export const ALL_EVENTS: Function[] = [
 	OnUploadEvent,
 	OnDownloadEvent,
 	RespondedEvent,
-	BodyParsedEvent,
 	ProcessFinishedEvent,
 	AbortedEvent,
 	CancelledEvent,
