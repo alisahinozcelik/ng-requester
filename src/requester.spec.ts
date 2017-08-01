@@ -67,9 +67,7 @@ describe("Service: Requester", () => {
 
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.subscribe(res => {
-					console.log(res);
 					http.match(req => {
-						console.log(req);
 						return req.url === 'http://www.test.com/api/fetch'
 							&& req.method === 'DELETE'
 							&& req.responseType === 'arraybuffer'
@@ -77,8 +75,14 @@ describe("Service: Requester", () => {
 				});
 			
 			obs.toPromise()
-				.then(() => done())
-				.catch(() => fail());
+				.then(() => {
+					console.log('done');
+					done()
+				})
+				.catch(err => {
+					console.log("hata");
+					fail()
+				});
 		})();
 	});
 });
