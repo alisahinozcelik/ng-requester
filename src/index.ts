@@ -1,22 +1,18 @@
 // Polyfills
 import 'es6-shim';
 import 'weakmap-polyfill';
-// window['Symbol'] = Symbol || require('es6-symbol');
+window['Symbol'] = Symbol || require('es6-symbol');
 
 // Vendor
 import 'reflect-metadata';
+
+// Customised Vendor
+import './customised-observable';
 
 // Lib
 export * from './requester';
 export * from './requester.module';
 
-export * from './operators/error-handler';
-export * from './operators/guard';
-export * from './operators/interceptor';
-export * from './operators/post-request';
-export * from './operators/pre-request';
-export * from './helpers/error';
-
-export * from './interfaces/methods';
-export * from './interfaces/options';
-export * from './interfaces/response-types';
+export * from './operators';
+export * from './helpers';
+export * from './interfaces';

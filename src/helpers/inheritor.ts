@@ -3,11 +3,11 @@ interface IHasInstance {
 }
 
 export namespace Inheritor {
-	const data = new Map<IHasInstance, {[key: string]: any}>();
+	const SYMBOLS: {[key: string]: symbol} = {};
 
 	export function Basic<T>(defaultValue: T) {
 		return function (target: Object, propertyKey: string): any {
-			const sym = Symbol(propertyKey);
+			const sym = SYMBOLS[propertyKey] = Symbol(propertyKey);
 
 			Object.defineProperty(target, propertyKey, {
 				get: function() {
@@ -31,51 +31,47 @@ export namespace Inheritor {
 		}
 	}
 
-	export function ArrayCombiner(thisObject: IHasInstance) {
-		if (!data.has(thisObject)) {data.set(thisObject, {});}
-
+	export function ArrayCombiner() {
 		return function (target: Object, propertyKey: string): any {
-			const ownValue = data.get(this)[propertyKey] = [];
+			const sym = SYMBOLS[propertyKey] = Symbol(propertyKey);
 
 			Object.defineProperty(target, propertyKey, {
 				get: function() {
+					if (this[sym] === undefined) { this[sym] = [];}
+
 					const inherited = this.instance ? this.instance[propertyKey] : [];
-					return [...inherited, ...ownValue];
+					return [...inherited, ...this[sym]];
 				},
 				set: function(val: any[]) {
-					ownValue.push(...val);
+					if (this[sym] === undefined) { this[sym] = [];}
+					this[sym].push(...val);
 				}
 			});
 			return null;
 		}
 	}
 
-	export function MapCombiner(thisObject: IHasInstance) {
-		if (!data.has(thisObject)) { data.set(thisObject, {}); }
-
+	export function MapCombiner() {
 		return function(target: Object, propertyKey: string) {
-			let ownValue: Map<any, any[]> = new Map<any, any[]>();
-			data.get(thisObject)[propertyKey] = ownValue;
+			const sym = SYMBOLS[propertyKey] = Symbol(propertyKey);
 
 			Object.defineProperty(target, propertyKey, {
 				get: function() {
+					if (this[sym] === undefined) { this[sym] = new Map<any, any[]>();}
 					const newMap = new Map<any, any[]>();
 					const inherited: Map<any, any[]> = this.instance ? this.instance[propertyKey] : new Map();
 
 					mergeMap(newMap, inherited);
-					mergeMap(newMap, ownValue);
+					mergeMap(newMap, this[sym]);
 
 					return newMap;
 				},
 				set: function(val: Map<any, any[]>) {
-					mergeMap(ownValue, val);
+					if (this[sym] === undefined) { this[sym] = new Map<any, any[]>();}
+					mergeMap(this[sym], val);
 				}
 			});
 		}
-	}
-
-	export function Clone() {
-
 	}
 
 	function mergeMap(original: Map<any, any[]>, mapToBind: Map<any, any[]>): void {

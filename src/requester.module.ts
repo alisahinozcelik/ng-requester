@@ -6,18 +6,6 @@ import { Observable } from "rxjs";
 import { ProcessFinishedEvent } from "./events";
 import { Requester } from "./requester";
 
-(() => {
-	const original = Observable.prototype.toPromise;
-	Observable.prototype.toPromise = function(): Promise<any> {
-		return (original.call(this) as Promise<any>).then(res => {
-			if (res instanceof ProcessFinishedEvent) {
-				return res.response;
-			}
-			return res;
-		});
-	};
-})();
-
 @NgModule({
 	imports: [HttpClientModule],
 	providers: [Requester]

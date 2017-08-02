@@ -12,6 +12,9 @@ import { OperatorBase, Interceptor, IOperator, Guard, PreRequest, PostRequest } 
 import { promiseFactoryChainer } from "./utils/promise-chainer";
 import { OpenPromise } from "./utils/open-promise";
 
+import "./customised-observable";
+import { R } from "./customised-observable";
+
 type TListener = (event: RequesterEvent) => void;
 
 interface IInterceptorMiddlewareValue {
@@ -44,11 +47,11 @@ export class Requester<T = any> {
 
 	protected instance: Requester<T> = null;
 
-	@Inheritor.ArrayCombiner(this)
+	@Inheritor.ArrayCombiner()
 	private operators: OperatorBase[];
 
-	@Inheritor.MapCombiner(this)
-	private listeners: Map<EVENTS, TListener[]>;
+	@Inheritor.MapCombiner()
+	private listeners: Map<Function, TListener[]>;
 
 	constructor(
 		private client: HttpClient
@@ -127,6 +130,10 @@ export class Requester<T = any> {
 		return this.request(METHODS.POST, url, options);
 	}
 
+	/**
+	 * Set Configurable Request Options
+	 * @param params Pass host, url, method and responseType to configure
+	 */
 	public set<U = T>(params: IConfigurableProperties): Requester<U> {
 		const clone = Requester.createInstance(this);
 		const { host, url, method, responseType } = params;
@@ -140,9 +147,46 @@ export class Requester<T = any> {
 	}
 
 	/**
+	 * Set Headers
+	 * @param configurer Pass a configurer function which gets current headers as first argument and should return new headers to set
+	 */
+	public configureHeaders<U = T>(configurer: (headers: HttpHeaders) => HttpHeaders): Requester<U> {
+		const clone = this.clone();
+		clone.headers = configurer(clone.headers);
+		return clone;
+	}
+
+	/**
+	 * Set Query String Params
+	 * @param configurer Pass a configurer function which gets current params as first argument and should return new params to set
+	 */
+	public configureParams<U = T>(configurer: (params: HttpParams) => HttpParams): Requester<U> {
+		const clone = this.clone();
+		clone.params = configurer(clone.params);
+		return clone;
+	}
+
+	public addOperator<U = T>(...operators: IOperator[]): Requester<U> {
+		const clone = this.clone();
+		clone.operators = operators;
+		return clone;
+	}
+
+	/**
+	 * Add Event Listener
+	 * @param eventClass Pass event class itself (ex: ProcessStartedEvent)
+	 * @param listener Callback function to call on each passed event
+	 */
+	public addListener<U = T>(eventClass: Function, listener: TListener): Requester<U> {
+		const clone = this.clone();
+		clone.listeners = new Map().set(eventClass, [listener]);
+		return clone;
+	}
+
+	/**
 	 * Send Request
 	 */
-	public send<U = T>(): Observable<RequesterEvent<U>> {
+	public send<U = T>(): R.Observable<RequesterEvent<U>> {
 		const { listeners } = this;
 		const processID = Symbol("Requester.Request.Id");
 
@@ -153,7 +197,8 @@ export class Requester<T = any> {
 				return () => {};
 			})
 			.do(onNext => {
-				const event: EVENTS = EVENTS[onNext.constructor.name];
+				const event = onNext.constructor as typeof RequesterEvent;
+
 				(listeners.get(event) || []).forEach(handler => {
 					handler(onNext);
 				});
@@ -224,7 +269,9 @@ export class Requester<T = any> {
 				return this.client.request<U>(request)
 					.catch<any, HttpResponse<U>>((err: any) => {
 						if (!(err instanceof HttpErrorResponse)) {
-							return Observable.throw(err);
+							// Until angular fixes this issue write error to the console
+							console.error(err);
+							return Observable.throw(new Error(Requester.NG_ERROR, err));
 						}
 						const mapped = new HttpResponse({
 							body: err.error,
@@ -235,24 +282,22 @@ export class Requester<T = any> {
 						});
 						return Observable.of(mapped) as Observable<HttpResponse<U>>;
 					})
-					.flatMap<HttpEvent<U>, RequesterEvent<U>>(res => {
+					.map<HttpEvent<U>, RequesterEvent<U>>(res => {
 						switch (res.type) {
 							case HttpEventType.Sent:
-								return Observable.of(new RequestFiredEvent(processID, request));
+								return new RequestFiredEvent(processID, request);
 							case HttpEventType.DownloadProgress:
-								return Observable.of(new OnDownloadEvent(processID, (res as HttpProgressEvent & { type: HttpEventType.DownloadProgress })));
+								return new OnDownloadEvent(processID, (res as HttpProgressEvent & { type: HttpEventType.DownloadProgress }));
 							case HttpEventType.UploadProgress:
-								return Observable.of(new OnUploadEvent(processID, (res as HttpProgressEvent & { type: HttpEventType.UploadProgress })));
+								return new OnUploadEvent(processID, (res as HttpProgressEvent & { type: HttpEventType.UploadProgress }));
 							case HttpEventType.Response:
-								return Observable.of(new RespondedEvent(processID, res as HttpResponse<U>));
+								return new RespondedEvent(processID, res as HttpResponse<U>);
 							default:
 								return null;
 						}
-					})
-					.catch(err => {
-						return Observable.of(new Error(Requester.NG_ERROR, err));
 					});
 			})
+			.filter(val => val !== null)
 			.flatMap((res: RespondedEvent<U>) => {
 				if (res instanceof Error) {
 					return Observable.throw(res);
@@ -283,123 +328,13 @@ export class Requester<T = any> {
 
 				return Observable.throw(err);
 			});
-
-		// return new Observable<RequesterEvent<U>>(subscriber => {
-			
-		// 	Promise.resolve()
-		// 		// Guards
-		// 		.then(() => {
-		// 			const guards = operators
-		// 				.filter(op => op instanceof Guard)
-		// 				.map((op: Guard) => op.middleware()); 
-		// 			return Promise.all(guards);
-		// 		})
-		// 		// Pre-request Operators
-		// 		.then(() => {
-		// 			subscriber.next(new PassedGuardsEvent(processID));
-
-		// 			const preRequests = operators
-		// 				.filter(op => op instanceof PreRequest)
-		// 				.map((op: PreRequest) => op.middleware);
-
-		// 			return promiseFactoryChainer(preRequests, {
-		// 				body: this.body,
-		// 				headers: this.headers,
-		// 				params: this.params,
-		// 				responsType: this.responseType
-		// 			});
-		// 		})
-		// 		// Send Actual Request
-		// 		.then(options => {
-		// 			const promise = new OpenPromise<HttpResponse<U>>();
-
-		// 			const request = new HttpRequest<U>(METHODS[this.method], this.host + '/' + this.url, this.body, {
-		// 				headers: this.headers,
-		// 				responseType: (RESPONSE_TYPES[this.responseType] as 'arraybuffer'),
-		// 				params: this.params
-		// 			});
-
-		// 			const requestSubscription = this.client
-		// 				.request(request)
-		// 				.subscribe({
-		// 					next: res => {
-		// 						switch (res.type) {
-		// 							case HttpEventType.Sent:
-		// 								subscriber.next(new RequestFiredEvent(processID, request));
-		// 							break;
-		// 							case HttpEventType.DownloadProgress:
-		// 								subscriber.next(new OnDownloadEvent(processID, (res as HttpProgressEvent & { type: HttpEventType.DownloadProgress })))
-		// 							break;
-		// 							case HttpEventType.UploadProgress:
-		// 								subscriber.next(new OnUploadEvent(processID, (res as HttpProgressEvent & { type: HttpEventType.UploadProgress })))
-		// 							break;
-		// 							case HttpEventType.Response:
-		// 								subscriber.next(new RespondedEvent(processID, res as HttpResponse<U>));
-		// 								promise.resolve(res as HttpResponse<U>);
-		// 							break;
-		// 							default:
-		// 						}
-		// 					},
-		// 					error: err => {
-		// 						err.body = err.error;
-		// 						err.type = HttpEventType.Response;
-		// 						subscriber.next(new RespondedEvent(processID, err as HttpResponse<U>));
-		// 						promise.resolve(err);
-		// 					}
-		// 				});
-					
-		// 			subscriber.add(unsubscriber);
-
-		// 			function unsubscriber() {
-		// 				if (!promise.finished) {
-		// 					requestSubscription.unsubscribe();
-		// 					subscriber.next(new CancelledEvent(processID));
-		// 					promise.reject(new Error(Requester.CANCELLED, null));
-		// 				}
-		// 			}
-
-		// 			return promise.promise;
-		// 		})
-		// 		// Post Request Operators
-		// 		.then(response => {
-		// 			const postRequests = operators
-		// 				.filter(op => op instanceof PostRequest)
-		// 				.map((op: PostRequest<U>) => op.middleware);
-					
-		// 			return promiseFactoryChainer(postRequests, new Response(Requester.RESPONSE_OK, response));
-		// 		})
-		// 		// Map Raw response to parsed body
-		// 		.then(response => {
-		// 			const parsedResponse: Response<U> = (response as Response<any>);
-		// 			parsedResponse.data = response.data.body;
-		// 			subscriber.next(new ProcessFinishedEvent(processID, parsedResponse));
-		// 			subscriber.complete();
-		// 		})
-		// 		.catch(err => {
-		// 			if (!(err instanceof Error)) {
-		// 				err = new Error(Requester.UNKNOWN_ERROR, err);
-		// 			}
-
-		// 			if (!(err instanceof Retry)) {
-		// 				subscriber.next(new AbortedEvent(processID, err));
-		// 				subscriber.next(new ProcessFinishedEvent(processID, err));
-		// 			}
-
-		// 			subscriber.error(err);
-		// 		});
-
-		// 	return () => {}
-		// });
 	}
 
+	/**
+	 * Clone Requester
+	 */
 	public clone(): Requester<T> {
 		return Requester.createInstance(this);
-	}
-
-	public addOperator(...operators: IOperator[]): Requester<T> {
-		const clone = this.clone();
-		clone.operators = operators;
-		return clone;
 	}
 
 	private interceptorCycle<U = T>(
@@ -447,7 +382,6 @@ export class Requester<T = any> {
 				}
 			},
 			complete: () => {
-				debugger;
 				interceptorSubscription.unsubscribe();
 				stream.complete();
 			}
@@ -459,13 +393,11 @@ export class Requester<T = any> {
 				next: error => {
 					stream.next(new InterceptedEvent(processID, error))
 					stream.error(error);
-					debugger;
 					retryableSubscription.unsubscribe();
 				},
 				error: (retry: Retry) => {
 					stream.next(new InterceptedEvent(processID, retry.error));
 					stream.next(new RestartedEvent(processID));
-					debugger;
 					retryableSubscription.unsubscribe();
 					retry.promise
 						.then(() => {
