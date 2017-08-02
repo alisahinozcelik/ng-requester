@@ -2,14 +2,14 @@ import { HttpRequest, HttpProgressEvent, HttpEventType } from '@angular/common/h
 
 import { RequesterEvent } from "./requester-event";
 
-interface IOriginalEvent extends HttpProgressEvent {
+export interface IOriginalDownloadEvent extends HttpProgressEvent {
 	type: HttpEventType.DownloadProgress;
 }
 
 export class OnDownloadEvent extends RequesterEvent {
 	constructor(
 		processId: symbol,
-		public originalEvent: IOriginalEvent
+		public originalEvent: IOriginalDownloadEvent
 	) {
 		super(processId);
 	}

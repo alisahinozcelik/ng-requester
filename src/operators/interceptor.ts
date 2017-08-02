@@ -3,16 +3,14 @@ import { noop } from "lodash";
 import { IOperator, OperatorBase } from "./operator";
 import { Error, Retry } from "../helpers";
 
-type TPromiseFactoryAny = () => Promise<any>;
-
 export class Interceptor extends OperatorBase implements IOperator {
 	private static ERROR = Symbol("INTERCEPTED");
 	private static PROMISE_NEVER = new Promise<void>(noop);
 
 	constructor(
-		private interceptOnResolve: TPromiseFactoryAny,
+		private interceptOnResolve: () => Promise<any>,
 		public keepRunningOnRetry = false,
-		private retryAfter: TPromiseFactoryAny = null
+		private retryAfter: () => Promise<any> = null
 	) {
 		super();
 	}

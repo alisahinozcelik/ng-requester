@@ -15,14 +15,14 @@ import { OpenPromise } from "./utils/open-promise";
 import "./customised-observable";
 import { R } from "./customised-observable";
 
-type TListener = (event: RequesterEvent) => void;
+export type TListener = (event: RequesterEvent) => void;
 
 interface IInterceptorMiddlewareValue {
 	id: symbol;
 	promise: Promise<Error>;
 }
 
-interface IConfigurableProperties {
+export interface IConfigurableProperties {
 	method?: METHODS;
 	host?: string;
 	url?: string;

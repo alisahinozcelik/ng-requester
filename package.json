@@ -1,6 +1,6 @@
 {
   "name": "ng-requester",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Angular Http Request Module",
   "main": "dist/index.js",
   "scripts": {
