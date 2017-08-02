@@ -219,11 +219,11 @@ export class Requester<T = any> {
 			.filter(op => op instanceof Interceptor);
 
 		const eternalInterceptors = interceptors
-			.filter(op => op.keepSamePromiseOnRetry)
+			.filter(op => op.keepRunningOnRetry)
 			.map(Requester.mapInterceptor);
 		
 		const temporaryInterceptors = interceptors
-			.filter(op => !op.keepSamePromiseOnRetry);
+			.filter(op => !op.keepRunningOnRetry);
 
 		// Start Intercepting Progress
 		this.interceptorCycle(processID, stream, eternalInterceptors, temporaryInterceptors);
@@ -367,7 +367,6 @@ export class Requester<T = any> {
 				stream.next(val);
 			},
 			error: err => {
-				console.info(err);
 				if (err instanceof Retry) {
 					stream.next(new RestartedEvent(processID));
 					err.promise

@@ -14,5 +14,6 @@ export * from './requester';
 export * from './requester.module';
 
 export * from './operators';
+export * from './events';
 export * from './helpers';
 export * from './interfaces';
