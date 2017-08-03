@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders, HttpParams, HttpRequest, HttpEvent, HttpEventT
 import { Observable, Subscription, Subject } from "rxjs";
 import { findIndex } from "lodash";
 
-import { Inheritor, Error, Retry, Response } from "./helpers";
+import { Inheritor, Error, Retry, Response, RawResponse } from "./helpers";
 import { METHODS, RESPONSE_TYPES, IRequesterOptions, IRequesterOptionsRequired } from "./interfaces";
 import { ALL_EVENTS, RequesterEvent, EVENTS, ProcessStartedEvent, InterceptedEvent,
 					RestartedEvent, RequestFiredEvent, PassedGuardsEvent, ProcessFinishedEvent,
@@ -310,9 +310,9 @@ export class Requester<T = any> {
 					.filter(op => op instanceof PostRequest)
 					.map((op: PostRequest<U>) => op.middleware);
 				
-				return Observable.of(res).merge(promiseFactoryChainer(postRequests, new Response(Requester.RESPONSE_OK, res.response)))
+				return Observable.of(res).merge(promiseFactoryChainer(postRequests, new RawResponse(Requester.RESPONSE_OK, res.response)))
 			})
-			.flatMap((value: Response<HttpResponse<U>>) => {
+			.flatMap((value: RawResponse<U>) => {
 				if (value instanceof RequesterEvent) {return Observable.of(value);}
 				return Observable.of(new ProcessFinishedEvent(processID, new Response(value.type, value.data.body)));
 			})
