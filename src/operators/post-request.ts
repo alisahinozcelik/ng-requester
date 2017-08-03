@@ -7,13 +7,13 @@ export class PostRequest<T, U = T> extends OperatorBase implements IOperator {
 	private static ERROR = Symbol("Stopped on Post-Request Operation");
 
 	constructor(
-		private modify: (response: RawResponse<U>) => Promise<RawResponse<U>>,
+		private modify: (response: RawResponse<T>) => Promise<RawResponse<U>>,
 		private retryOnCatch?: () => Promise<any>
 	) {
 		super();
 	}
 
-	public middleware(response: RawResponse<U>): Promise<RawResponse<U>> {
+	public middleware(response: RawResponse<T>): Promise<RawResponse<U>> {
 		return this.modify(response)
 			.catch(error => {
 				if (this.retryOnCatch) {
