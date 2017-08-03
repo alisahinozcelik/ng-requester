@@ -1,6 +1,6 @@
 {
   "name": "ng-requester",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Angular Http Request Module",
   "main": "dist/index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "test:debug": "karma start ./tasks/karma/karma.conf.js --browsers=Chrome --single-run=false --debug",
     "test": "karma start ./tasks/karma/karma.conf.js",
     "document:serve": "compodoc -p ./tsconfig.json -w -s",
-    "prepublish": "npm test && gulp publish"
+    "prepublishOnly": "npm test && gulp publish"
   },
   "private": false,
   "typings": "./dist/index.d.ts",
