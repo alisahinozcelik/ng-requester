@@ -1,8 +1,8 @@
 import { Observable as _Obs } from "rxjs";
-import { ProcessFinishedEvent } from "./events";
+import { ProcessFinishedEvent, RequesterEvent } from "./events";
 
 export declare module R {
-  export interface Observable<T> extends _Obs<T> {
+  export interface Observable<T> extends _Obs<RequesterEvent<T>> {
     toPromise: <U = T>() => Promise<U>;
   }
 }

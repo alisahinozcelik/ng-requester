@@ -104,8 +104,8 @@ export class Requester<T = any> {
 	/**
 	 * Request
 	 */
-	public request<U = T>(method: METHODS, url: string, options: IRequesterOptions = {}): Observable<RequesterEvent<U>> {
-		const clone = Requester.createInstance(this);
+	public request<U = T>(method: METHODS, url: string, options: IRequesterOptions = {}) {
+		const clone: Requester<U> = Requester.createInstance(this);
 		const { body, headers, params, responsType } = options;
 
 		if (body) { clone.body = body; }
@@ -122,12 +122,12 @@ export class Requester<T = any> {
 	 * @param url Url to send request
 	 * @param options Request Options
 	 */
-	public get<U = T>(url: string, options?: IRequesterOptions): Observable<RequesterEvent<U>> {
-		return this.request(METHODS.GET, url, options);
+	public get<U = T>(url: string, options?: IRequesterOptions) {
+		return this.request<U>(METHODS.GET, url, options);
 	}
 
-	public post<U = T>(url: string, options?: IRequesterOptions): Observable<RequesterEvent<U>> {
-		return this.request(METHODS.POST, url, options);
+	public post<U = T>(url: string, options?: IRequesterOptions) {
+		return this.request<U>(METHODS.POST, url, options);
 	}
 
 	/**
@@ -186,7 +186,7 @@ export class Requester<T = any> {
 	/**
 	 * Send Request
 	 */
-	public send<U = T>(): R.Observable<RequesterEvent<U>> {
+	public send<U = T>(): R.Observable<U> {
 		const { listeners } = this;
 		const processID = Symbol("Requester.Request.Id");
 
