@@ -5,7 +5,7 @@ import { findIndex } from "lodash";
 
 import { Inheritor, Error, Retry, Response, RawResponse } from "./helpers";
 import { METHODS, RESPONSE_TYPES, IRequesterOptions, IRequesterOptionsRequired } from "./interfaces";
-import { ALL_EVENTS, RequesterEvent, EVENTS, ProcessStartedEvent, InterceptedEvent,
+import { RequesterEvent, ProcessStartedEvent, InterceptedEvent, AccomplishedEvent,
 					RestartedEvent, RequestFiredEvent, PassedGuardsEvent, ProcessFinishedEvent,
 					OnDownloadEvent, OnUploadEvent, RespondedEvent, CancelledEvent, AbortedEvent } from "./events";
 import { OperatorBase, Interceptor, IOperator, Guard, PreRequest, PostRequest } from "./operators";
@@ -39,11 +39,11 @@ interface IPreRequestOptions {
 @Injectable()
 export class Requester<T = any> {
 
-	public static RETRYING_REJECTED = Symbol('Retrying.Rejected');
-	public static UNKNOWN_ERROR = Symbol('Unknown.Error');
-	public static RESPONSE_OK = Symbol('Response.Ok');
-	public static CANCELLED = Symbol('Cancelled');
-	public static NG_ERROR = Symbol('Angular.Http.Error');
+	public static RETRYING_REJECTED = Symbol("Retrying.Rejected");
+	public static UNKNOWN_ERROR = Symbol("Unknown.Error");
+	public static RESPONSE_OK = Symbol("Response.Ok");
+	public static CANCELLED = Symbol("Cancelled");
+	public static NG_ERROR = Symbol("Angular.Http.Error");
 
 	protected instance: Requester<T> = null;
 
@@ -203,7 +203,7 @@ export class Requester<T = any> {
 					handler(onNext);
 				});
 			});
-		
+
 		const interceptorStream = this.interceptorStream<U>(processID);
 
 		// Return Merged Stream
@@ -221,13 +221,13 @@ export class Requester<T = any> {
 		const eternalInterceptors = interceptors
 			.filter(op => op.keepRunningOnRetry)
 			.map(Requester.mapInterceptor);
-		
+
 		const temporaryInterceptors = interceptors
 			.filter(op => !op.keepRunningOnRetry);
 
 		// Start Intercepting Progress
 		this.interceptorCycle(processID, stream, eternalInterceptors, temporaryInterceptors);
-		
+
 		// Return Stream
 		return stream;
 	}
@@ -247,7 +247,7 @@ export class Requester<T = any> {
 				const preRequests = operators
 					.filter(op => op instanceof PreRequest)
 					.map((op: PreRequest) => op.middleware);
-				
+
 				const preRequests$ = promiseFactoryChainer(preRequests, {
 					body: this.body,
 					headers: this.headers,
@@ -258,11 +258,11 @@ export class Requester<T = any> {
 				return Observable.of(val).merge(preRequests$);
 			})
 			.flatMap((options: IPreRequestOptions) => {
-				if (options instanceof RequesterEvent) {return Observable.of(options);}
-				
-				const request = new HttpRequest<U>(METHODS[this.method], this.host + '/' + this.url, this.body, {
+				if (options instanceof RequesterEvent) {return Observable.of(options); }
+
+				const request = new HttpRequest<U>(METHODS[this.method], this.host + "/" + this.url, this.body, {
 					headers: this.headers,
-					responseType: (RESPONSE_TYPES[this.responseType] as 'arraybuffer'),
+					responseType: (RESPONSE_TYPES[this.responseType] as "arraybuffer"),
 					params: this.params
 				});
 
@@ -309,12 +309,18 @@ export class Requester<T = any> {
 				const postRequests = operators
 					.filter(op => op instanceof PostRequest)
 					.map((op: PostRequest<U>) => op.middleware);
-				
-				return Observable.of(res).merge(promiseFactoryChainer(postRequests, new RawResponse(Requester.RESPONSE_OK, res.response)))
+
+				return Observable.of(res).merge(promiseFactoryChainer(postRequests, new RawResponse(Requester.RESPONSE_OK, res.response)));
 			})
 			.flatMap((value: RawResponse<U>) => {
-				if (value instanceof RequesterEvent) {return Observable.of(value);}
-				return Observable.of(new ProcessFinishedEvent(processID, new Response(value.type, value.data.body)));
+				if (value instanceof RequesterEvent) {return Observable.of(value); }
+
+				const response = new Response(value.type, value.data.body);
+
+				return Observable.of(
+					new AccomplishedEvent(processID, response),
+					new ProcessFinishedEvent(processID, response)
+				);
 			})
 			.catch(err => {
 				if (!(err instanceof Error)) {
@@ -390,7 +396,7 @@ export class Requester<T = any> {
 		interceptorSubscription = interceptors$
 			.subscribe({
 				next: error => {
-					stream.next(new InterceptedEvent(processID, error))
+					stream.next(new InterceptedEvent(processID, error));
 					stream.error(error);
 					retryableSubscription.unsubscribe();
 				},

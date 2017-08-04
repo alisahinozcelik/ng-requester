@@ -2,5 +2,4 @@ export interface IOperator {
 	middleware: Function;
 }
 
-export class OperatorBase {
-}
+export abstract class OperatorBase {}

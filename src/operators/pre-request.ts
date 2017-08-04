@@ -15,7 +15,7 @@ export class PreRequest extends OperatorBase implements IOperator {
 		super();
 	}
 
-	public middleware(options: IRequesterOptionsRequired):Promise<IRequesterOptionsRequired> {
+	public middleware(options: IRequesterOptionsRequired): Promise<IRequesterOptionsRequired> {
 		const result = this.modifier(options);
 		return Promise.resolve()
 			.then(() => result)

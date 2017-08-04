@@ -16,7 +16,7 @@ export class Interceptor extends OperatorBase implements IOperator {
 	}
 
 	public middleware(): {id: symbol, promise: Promise<Error>} {
-		const interceptorId = Symbol('Requester.Interceptor.Id');
+		const interceptorId = Symbol("Requester.Interceptor.Id");
 
 		const promise = this.interceptOnResolve()
 			.catch(error => {

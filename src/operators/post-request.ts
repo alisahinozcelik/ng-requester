@@ -23,6 +23,6 @@ export class PostRequest<T, U = T> extends OperatorBase implements IOperator {
 					error = new Error(PostRequest.ERROR, error);
 				}
 				throw error;
-			})
+			});
 	}
 }

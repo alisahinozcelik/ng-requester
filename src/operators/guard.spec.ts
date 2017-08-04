@@ -1,7 +1,7 @@
 import {  } from "jasmine";
-import { TestBed, inject } from '@angular/core/testing';
+import { TestBed, inject } from "@angular/core/testing";
 import { HttpTestingController } from "@angular/common/http/testing";
-import { Subject, Observable, Subscription } from 'rxjs';
+import { Subject, Observable, Subscription } from "rxjs";
 
 import { RequesterModule, Requester, ProcessStartedEvent, RequestFiredEvent } from "../index";
 import { Guard } from "./guard";
@@ -22,8 +22,8 @@ describe("Operator: Guard", () => {
 			const obs = requester.addOperator(new Guard(() => false)).send();
 
 			obs.toPromise()
-				.then(() => {fail();})
-				.catch(() => {done();})
+				.then(() => {fail(); })
+				.catch(() => {done(); });
 		})();
 	});
 
@@ -37,12 +37,12 @@ describe("Operator: Guard", () => {
 
 			const obs = requester.addOperator(guard).send();
 
-			setTimeout(() => { http.expectNone('/'); }, 400);
-			setTimeout(() => { http.expectOne('/').flush({}); }, 600);
+			setTimeout(() => { http.expectNone("/"); }, 400);
+			setTimeout(() => { http.expectOne("/").flush({}); }, 600);
 
 			obs.toPromise()
-				.then(() => {done();})
-				.catch(() => {fail();})
+				.then(() => {done(); })
+				.catch(() => {fail(); });
 		})();
 	});
 
@@ -61,12 +61,12 @@ describe("Operator: Guard", () => {
 
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.subscribe(res => {
-					http.expectOne('/').flush({});
+					http.expectOne("/").flush({});
 				});
 
 			obs.toPromise()
-				.then(() => {done();})
-				.catch(() => {fail();})
+				.then(() => {done(); })
+				.catch(() => {fail(); });
 		})();
 	});
 
@@ -82,9 +82,9 @@ describe("Operator: Guard", () => {
 			const obs = requester.addOperator(guard).send();
 
 			obs.toPromise()
-				.then(() => {fail();})
-				.catch(() => {done();})
+				.then(() => {fail(); })
+				.catch(() => {done(); });
 		})();
 	});
-	
+
 });

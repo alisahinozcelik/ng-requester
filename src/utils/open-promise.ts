@@ -1,8 +1,8 @@
 import { noop } from "lodash";
 
 export class OpenPromise<T> {
-	private _resolver: (param: T)=>void;
-	private _rejector: (error: any)=>void;
+	private _resolver: (param: T) => void;
+	private _rejector: (error: any) => void;
 	public promise: Promise<T>;
 
 	public resolved = false;
@@ -15,7 +15,7 @@ export class OpenPromise<T> {
 		});
 	}
 
-	get finished():boolean {
+	get finished(): boolean {
 		return this.resolved || this.rejected;
 	}
 

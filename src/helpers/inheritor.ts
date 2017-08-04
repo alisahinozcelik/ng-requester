@@ -11,7 +11,7 @@ export namespace Inheritor {
 
 			Object.defineProperty(target, propertyKey, {
 				get: function() {
-					if (this[sym] === undefined) { this[sym] = null;}
+					if (this[sym] === undefined) { this[sym] = null; }
 
 					const value = this[sym];
 
@@ -28,7 +28,7 @@ export namespace Inheritor {
 				}
 			});
 			return null;
-		}
+		};
 	}
 
 	export function ArrayCombiner() {
@@ -37,18 +37,18 @@ export namespace Inheritor {
 
 			Object.defineProperty(target, propertyKey, {
 				get: function() {
-					if (this[sym] === undefined) { this[sym] = [];}
+					if (this[sym] === undefined) { this[sym] = []; }
 
 					const inherited = this.instance ? this.instance[propertyKey] : [];
 					return [...inherited, ...this[sym]];
 				},
 				set: function(val: any[]) {
-					if (this[sym] === undefined) { this[sym] = [];}
+					if (this[sym] === undefined) { this[sym] = []; }
 					this[sym].push(...val);
 				}
 			});
 			return null;
-		}
+		};
 	}
 
 	export function MapCombiner() {
@@ -57,7 +57,7 @@ export namespace Inheritor {
 
 			Object.defineProperty(target, propertyKey, {
 				get: function() {
-					if (this[sym] === undefined) { this[sym] = new Map<any, any[]>();}
+					if (this[sym] === undefined) { this[sym] = new Map<any, any[]>(); }
 					const newMap = new Map<any, any[]>();
 					const inherited: Map<any, any[]> = this.instance ? this.instance[propertyKey] : new Map();
 
@@ -67,11 +67,11 @@ export namespace Inheritor {
 					return newMap;
 				},
 				set: function(val: Map<any, any[]>) {
-					if (this[sym] === undefined) { this[sym] = new Map<any, any[]>();}
+					if (this[sym] === undefined) { this[sym] = new Map<any, any[]>(); }
 					mergeMap(this[sym], val);
 				}
 			});
-		}
+		};
 	}
 
 	function mergeMap(original: Map<any, any[]>, mapToBind: Map<any, any[]>): void {

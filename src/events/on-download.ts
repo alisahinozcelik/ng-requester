@@ -1,4 +1,4 @@
-import { HttpRequest, HttpProgressEvent, HttpEventType } from '@angular/common/http';
+import { HttpRequest, HttpProgressEvent, HttpEventType } from "@angular/common/http";
 
 import { RequesterEvent } from "./requester-event";
 

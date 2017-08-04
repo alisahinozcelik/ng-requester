@@ -1,7 +1,7 @@
 import {  } from "jasmine";
-import { TestBed, inject } from '@angular/core/testing';
+import { TestBed, inject } from "@angular/core/testing";
 import { HttpTestingController } from "@angular/common/http/testing";
-import { Subject, Observable, Subscription } from 'rxjs';
+import { Subject, Observable, Subscription } from "rxjs";
 import { noop, defer } from "lodash";
 
 import { RequesterModule, Requester, ProcessStartedEvent, RequestFiredEvent } from "../index";
@@ -25,22 +25,22 @@ describe("Operator: Interceptor", () => {
 			const obs = requester.addOperator(interceptor).send();
 
 			obs.toPromise()
-				.then(() => {fail();})
-				.catch(() => {done();})
+				.then(() => {fail(); })
+				.catch(() => {done(); });
 		})();
 	});
 
 	it("fastest interceptor should intercept", done => {
 		inject([Requester], (requester: Requester<any>) => {
 
-			const interceptor_1 = new Interceptor(() => new Promise(resolve => setTimeout(resolve, 100)));
-			const interceptor_2 = new Interceptor(() => new Promise(resolve => setTimeout(resolve, 500)));
+			const interceptor1 = new Interceptor(() => new Promise(resolve => setTimeout(resolve, 100)));
+			const interceptor2 = new Interceptor(() => new Promise(resolve => setTimeout(resolve, 500)));
 
-			const obs = requester.addOperator(interceptor_1, interceptor_2).send();
+			const obs = requester.addOperator(interceptor1, interceptor2).send();
 			const startedAt = new Date().getTime();
 
 			obs.toPromise()
-				.then(() => {fail();})
+				.then(() => {fail(); })
 				.catch(() => {
 					const diff = new Date().getTime() - startedAt;
 					expect(diff).toBeLessThan(500);
@@ -56,12 +56,12 @@ describe("Operator: Interceptor", () => {
 
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.subscribe(res => {
-					http.expectOne('/').flush({});
+					http.expectOne("/").flush({});
 				});
 
 			obs.toPromise()
-				.then(() => {done();})
-				.catch(() => {fail();})
+				.then(() => {done(); })
+				.catch(() => {fail(); });
 		})();
 	});
 
@@ -70,14 +70,14 @@ describe("Operator: Interceptor", () => {
 			const promise = new OpenPromise();
 
 			const interceptor = new Interceptor(() => promise.promise);
-			const obs = requester.addOperator(interceptor).set({url: 'whileXhr'}).send();
+			const obs = requester.addOperator(interceptor).set({url: "whileXhr"}).send();
 			let timeout: boolean | number = false;
 
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.subscribe(res => {
 					promise.resolve(null);
 					timeout = setTimeout(() => {
-						const req = http.expectOne('/whileXhr');
+						const req = http.expectOne("/whileXhr");
 						if (!req.cancelled) {
 							req.flush({});
 						}
@@ -85,9 +85,9 @@ describe("Operator: Interceptor", () => {
 				}, noop);
 
 			obs.toPromise()
-				.then(() => {fail();})
+				.then(() => {fail(); })
 				.catch(() => {
-					if (timeout) {clearTimeout(timeout as number)}
+					if (timeout) {clearTimeout(timeout as number); }
 					done();
 				});
 		})();
@@ -99,34 +99,33 @@ describe("Operator: Interceptor", () => {
 
 			const interceptor = new Interceptor(
 				() => new Promise((resolve, reject) => {
-					if (intercepted < 4) { resolve();}
-					else {reject();}
+					intercepted < 4 ? resolve() : reject();
 				}),
 				false,
 				() => new Promise(resolve => {
 					intercepted++;
 					resolve();
 				}));
-			
+
 			const obs = requester
 				.addOperator(interceptor)
 				.send();
-			
+
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.debounceTime(50)
 				.subscribe(() => {
-					http.match('/').forEach(val => {
-						if (!val.cancelled) {val.flush({})}
+					http.match("/").forEach(val => {
+						if (!val.cancelled) {val.flush({}); }
 					});
 				});
-			
+
 			obs
 				.toPromise()
 				.then(() => {
 					expect(intercepted).toBe(4);
 					done();
 				})
-				.catch(() => {fail();});
+				.catch(() => {fail(); });
 		})();
 	});
 
@@ -136,12 +135,12 @@ describe("Operator: Interceptor", () => {
 			let retried = false;
 			let eternalCalledCount = 0;
 
-			const interceptor_1 = new Interceptor(() => {
+			const interceptor1 = new Interceptor(() => {
 				eternalCalledCount++;
 				return Promise.reject(null);
 			}, true);
 
-			const interceptor_2 = new Interceptor(() => new Promise((resolve, reject) => {
+			const interceptor2 = new Interceptor(() => new Promise((resolve, reject) => {
 				if (!retried) {
 					retried = true;
 					resolve();
@@ -149,13 +148,13 @@ describe("Operator: Interceptor", () => {
 				reject();
 			}), false, () => Promise.resolve());
 
-			const obs = requester.addOperator(interceptor_1, interceptor_2).send();
+			const obs = requester.addOperator(interceptor1, interceptor2).send();
 
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.debounceTime(50)
 				.subscribe(() => {
-					http.match('/').forEach(val => {
-						if (!val.cancelled) {val.flush({})}
+					http.match("/").forEach(val => {
+						if (!val.cancelled) {val.flush({}); }
 					});
 				});
 
@@ -164,7 +163,7 @@ describe("Operator: Interceptor", () => {
 					expect(eternalCalledCount).toBe(1);
 					done();
 				})
-				.catch(() => {fail();});
+				.catch(() => {fail(); });
 		})();
 	});
 });

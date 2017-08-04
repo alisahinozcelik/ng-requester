@@ -1,8 +1,8 @@
 import {  } from "jasmine";
-import { TestBed, inject } from '@angular/core/testing';
+import { TestBed, inject } from "@angular/core/testing";
 import { HttpRequest } from "@angular/common/http";
 import { HttpTestingController } from "@angular/common/http/testing";
-import { Subject, Observable, Subscription } from 'rxjs';
+import { Subject, Observable, Subscription } from "rxjs";
 
 import { RequesterModule } from "./requester.module";
 import { Requester } from "./requester";
@@ -42,12 +42,12 @@ describe("Service: Requester", () => {
 
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.subscribe(res => {
-					http.expectOne('/').flush({});
+					http.expectOne("/").flush({});
 				});
-			
+
 			obs.toPromise()
-				.then(() => {done();})
-				.catch(() => {fail();});
+				.then(() => {done(); })
+				.catch(() => {fail(); });
 		})();
 	});
 
@@ -56,8 +56,8 @@ describe("Service: Requester", () => {
 
 			const obs = requester
 				.set({
-					host: 'http://www.test.com',
-					url: 'api/fetch',
+					host: "http://www.test.com",
+					url: "api/fetch",
 					method: METHODS.DELETE,
 					responseType: RESPONSE_TYPES.arraybuffer
 				})
@@ -66,15 +66,15 @@ describe("Service: Requester", () => {
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.subscribe(res => {
 					http.match(req => {
-						return req.url === 'http://www.test.com/api/fetch'
-							&& req.method === 'DELETE'
-							&& req.responseType === 'arraybuffer'
-					}).forEach(req => {req.flush(new ArrayBuffer(500))});
+						return req.url === "http://www.test.com/api/fetch"
+							&& req.method === "DELETE"
+							&& req.responseType === "arraybuffer";
+					}).forEach(req => {req.flush(new ArrayBuffer(500)); });
 				});
-			
+
 			obs.toPromise()
-				.then(() => {done();})
-				.catch(err => {fail();});
+				.then(() => {done(); })
+				.catch(err => {fail(); });
 		})();
 	});
 
@@ -84,12 +84,12 @@ describe("Service: Requester", () => {
 
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.subscribe(res => {
-					http.expectOne('/').flush({}, {status: 404, statusText: "it's not an error"});
+					http.expectOne("/").flush({}, {status: 404, statusText: "it's not an error"});
 				});
-			
+
 			obs.toPromise()
-				.then(() => {done();})
-				.catch(() => {fail();});
+				.then(() => {done(); })
+				.catch(() => {fail(); });
 		})();
 	});
 
@@ -99,15 +99,15 @@ describe("Service: Requester", () => {
 
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.subscribe(res => {
-					http.expectOne('/').flush("body");
+					http.expectOne("/").flush("body");
 				});
-			
+
 			obs.toPromise<Response<string>>()
 				.then(res => {
 					expect(res.data).toBe("body");
 					done();
 				})
-				.catch(() => {fail();});
+				.catch(() => {fail(); });
 		})();
 	});
 
@@ -122,15 +122,15 @@ describe("Service: Requester", () => {
 
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.subscribe(res => {
-					http.expectNone('/');
+					http.expectNone("/");
 					http.expectOne((req: HttpRequest<any>) => {
-						return req.method === 'POST' && req.url === 'http://test.com/'
+						return req.method === "POST" && req.url === "http://test.com/";
 					}).flush({});
 				});
-			
+
 			obs.toPromise()
-				.then(() => {done();})
-				.catch(() => {fail();});
+				.then(() => {done(); })
+				.catch(() => {fail(); });
 		})();
 	});
 
@@ -144,11 +144,11 @@ describe("Service: Requester", () => {
 
 			obs.filter(ev => ev instanceof RequestFiredEvent)
 				.subscribe(res => {
-					http.expectOne('/').flush({});
+					http.expectOne("/").flush({});
 				});
-			
-			obs.toPromise().catch(() => {fail();});
+
+			obs.toPromise().catch(() => {fail(); });
 		})();
 	});
-	
+
 });
