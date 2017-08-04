@@ -9,5 +9,9 @@ export function promiseFactoryChainer<T = any>(
 	initialParam?: T,
 	withSameValue = false
 	): Promise<T> {
-	return arr.reduce((prev, curr: TPromiseFactory<any>) => prev.then(res => curr(withSameValue ? initialParam : res)), Promise.resolve(initialParam));
+	return arr.reduce((prev, curr: TPromiseFactory<any>) => {
+		return prev.then(res => {
+			return curr(withSameValue ? initialParam : res);
+		});
+	}, Promise.resolve(initialParam));
 }

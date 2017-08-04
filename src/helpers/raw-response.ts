@@ -4,7 +4,10 @@ import { extend } from "lodash";
 export class RawResponse<T> {
 	constructor(public type: symbol, public data: HttpResponse<T>) {}
 
-	public clone<U = T>(): RawResponse<U> {
-		return new RawResponse(this.type, extend<HttpResponse<U>>(this.data));
+	public clone<U = T>({
+			type: type = this.type,
+			data: data = extend<HttpResponse<U>>(this.data)
+		}): RawResponse<U> {
+		return new RawResponse(type, data);
 	}
 }

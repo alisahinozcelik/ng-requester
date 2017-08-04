@@ -246,7 +246,7 @@ export class Requester<T = any> {
 			.flatMap(val => {
 				const preRequests = operators
 					.filter(op => op instanceof PreRequest)
-					.map((op: PreRequest) => op.middleware);
+					.map((op: PreRequest) => op.middleware.bind(op));
 
 				const preRequests$ = promiseFactoryChainer(preRequests, {
 					body: this.body,
@@ -308,7 +308,7 @@ export class Requester<T = any> {
 
 				const postRequests = operators
 					.filter(op => op instanceof PostRequest)
-					.map((op: PostRequest<U>) => op.middleware);
+					.map((op: PostRequest<U>) => op.middleware.bind(op));
 
 				return Observable.of(res).merge(promiseFactoryChainer(postRequests, new RawResponse(Requester.RESPONSE_OK, res.response)));
 			})

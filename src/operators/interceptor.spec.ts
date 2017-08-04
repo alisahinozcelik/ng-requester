@@ -166,4 +166,35 @@ describe("Operator: Interceptor", () => {
 				.catch(() => {fail(); });
 		})();
 	});
+
+	it("should call temporary interceptors on retry", done => {
+		inject([Requester], (requester: Requester<any>) => {
+
+			let retried = 0;
+			let temporaryCalledCount = 0;
+
+			const interceptor1 = new Interceptor(() => {
+				temporaryCalledCount++;
+				retried++;
+				return retried < 3 ? Promise.resolve() : Promise.reject(null);
+			}, false, () => Promise.resolve());
+
+			const obs = requester.addOperator(interceptor1).send();
+
+			obs.filter(ev => ev instanceof RequestFiredEvent)
+				.debounceTime(50)
+				.subscribe(() => {
+					http.match("/").forEach(val => {
+						if (!val.cancelled) {val.flush({}); }
+					});
+				});
+
+			obs.toPromise()
+				.then(() => {
+					expect(temporaryCalledCount).toBe(3);
+					done();
+				})
+				.catch(() => {fail(); });
+		})();
+	});
 });

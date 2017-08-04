@@ -102,7 +102,7 @@ describe("Service: Requester", () => {
 					http.expectOne("/").flush("body");
 				});
 
-			obs.toPromise<Response<string>>()
+			obs.toPromise<string>()
 				.then(res => {
 					expect(res.data).toBe("body");
 					done();
