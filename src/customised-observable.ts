@@ -14,7 +14,7 @@ export declare namespace R {
 	_Obs.prototype.toPromise = function() {
 		return original.call(this).then((res: RequesterEvent<Response<any>>) => {
 			if (res instanceof ProcessFinishedEvent) {
-				return (res as AccomplishedEvent<any>).response.data;
+				return (res as AccomplishedEvent<any>).response;
 			}
 			return res;
 		});

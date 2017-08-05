@@ -2,3 +2,4 @@ node_modules/
 documentation/
 dist/
 package-lock.json
+npm-debug.log

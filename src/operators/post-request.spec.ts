@@ -23,7 +23,7 @@ describe("Operator: Post Request", () => {
 		inject([Requester], (requester: Requester<any>) => {
 			const obs = requester
 				.addOperator(new PostRequest(response => {
-					return Promise.resolve(response.clone({data: extend<HttpResponse<string>>(response.data, {body: "modified body"})}));
+					return Promise.resolve(response.assignBody("modified body"));
 				}))
 				.send();
 
@@ -34,7 +34,7 @@ describe("Operator: Post Request", () => {
 
 			obs.toPromise()
 				.then(res => {
-					expect(res).toBe("modified body");
+					expect(res.data).toBe("modified body");
 					done();
 				})
 				.catch(() => fail());
