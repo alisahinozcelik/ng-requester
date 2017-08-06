@@ -5,6 +5,7 @@ import { Observable } from "rxjs";
 
 import { ProcessFinishedEvent } from "./events";
 import { Requester } from "./requester";
+import { MockBackendService } from "./testing";
 
 @NgModule({
 	imports: [HttpClientModule],
@@ -14,7 +15,7 @@ export class RequesterModule {
 	public static forTesting(): Function {
 		@NgModule({
 			imports: [HttpClientTestingModule],
-			providers: [Requester]
+			providers: [Requester, MockBackendService]
 		})
 		class Module {}
 		return Module;

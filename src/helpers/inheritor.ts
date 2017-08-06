@@ -3,11 +3,11 @@ interface IHasInstance {
 }
 
 export namespace Inheritor {
-	const SYMBOLS: {[key: string]: symbol} = {};
+	export const SYMBOLS: {[key: string]: symbol} = {};
 
 	export function Basic<T>(defaultValue: T) {
 		return function (target: Object, propertyKey: string): any {
-			const sym = SYMBOLS[propertyKey] = Symbol(propertyKey);
+			const sym = SYMBOLS[propertyKey] || (SYMBOLS[propertyKey] = Symbol(propertyKey));
 
 			Object.defineProperty(target, propertyKey, {
 				get: function() {
@@ -33,7 +33,7 @@ export namespace Inheritor {
 
 	export function ArrayCombiner() {
 		return function (target: Object, propertyKey: string): any {
-			const sym = SYMBOLS[propertyKey] = Symbol(propertyKey);
+			const sym = SYMBOLS[propertyKey] || (SYMBOLS[propertyKey] = Symbol(propertyKey));
 
 			Object.defineProperty(target, propertyKey, {
 				get: function() {
@@ -53,7 +53,7 @@ export namespace Inheritor {
 
 	export function MapCombiner() {
 		return function(target: Object, propertyKey: string) {
-			const sym = SYMBOLS[propertyKey] = Symbol(propertyKey);
+			const sym = SYMBOLS[propertyKey] || (SYMBOLS[propertyKey] = Symbol(propertyKey));
 
 			Object.defineProperty(target, propertyKey, {
 				get: function() {

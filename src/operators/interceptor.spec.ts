@@ -7,9 +7,11 @@ import { noop, defer } from "lodash";
 import { RequesterModule, Requester, ProcessStartedEvent, RequestFiredEvent } from "../index";
 import { Interceptor } from "./interceptor";
 import { OpenPromise } from "../utils/open-promise";
+import { MockBackendService } from "../testing";
 
 describe("Operator: Interceptor", () => {
 	let http: HttpTestingController;
+	let mock: MockBackendService;
 
 	beforeEach(() => {
 		TestBed.configureTestingModule({
@@ -17,6 +19,7 @@ describe("Operator: Interceptor", () => {
 		});
 
 		http = TestBed.get(HttpTestingController);
+		mock = TestBed.get(MockBackendService);
 	});
 
 	it("should be able to intercept request", done => {
@@ -51,15 +54,13 @@ describe("Operator: Interceptor", () => {
 
 	it("should not prevent request when intercepting promise fails", done => {
 		inject([Requester], (requester: Requester<any>) => {
+			mock.addResponse("/", {});
+
 			const interceptor = new Interceptor(() => Promise.reject(false));
-			const obs = requester.addOperator(interceptor).send();
-
-			obs.filter(ev => ev instanceof RequestFiredEvent)
-				.subscribe(res => {
-					http.expectOne("/").flush({});
-				});
-
-			obs.toPromise()
+			requester
+				.addOperator(interceptor)
+				.send()
+				.toPromise()
 				.then(() => {done(); })
 				.catch(() => {fail(); });
 		})();
@@ -93,8 +94,10 @@ describe("Operator: Interceptor", () => {
 		})();
 	});
 
-	it("should retry if retry promise entered", done => {
+	it("should retry if retry promise defined", done => {
 		inject([Requester], (requester: Requester<any>) => {
+			mock.addResponse("/", {});
+
 			let intercepted = 0;
 
 			const interceptor = new Interceptor(
@@ -107,19 +110,9 @@ describe("Operator: Interceptor", () => {
 					resolve();
 				}));
 
-			const obs = requester
+			requester
 				.addOperator(interceptor)
-				.send();
-
-			obs.filter(ev => ev instanceof RequestFiredEvent)
-				.debounceTime(50)
-				.subscribe(() => {
-					http.match("/").forEach(val => {
-						if (!val.cancelled) {val.flush({}); }
-					});
-				});
-
-			obs
+				.send()
 				.toPromise()
 				.then(() => {
 					expect(intercepted).toBe(4);
@@ -131,6 +124,7 @@ describe("Operator: Interceptor", () => {
 
 	it("should not call eternal intervals on retry", done => {
 		inject([Requester], (requester: Requester<any>) => {
+			mock.addResponse("/", {});
 
 			let retried = false;
 			let eternalCalledCount = 0;
@@ -148,17 +142,10 @@ describe("Operator: Interceptor", () => {
 				reject();
 			}), false, () => Promise.resolve());
 
-			const obs = requester.addOperator(interceptor1, interceptor2).send();
-
-			obs.filter(ev => ev instanceof RequestFiredEvent)
-				.debounceTime(50)
-				.subscribe(() => {
-					http.match("/").forEach(val => {
-						if (!val.cancelled) {val.flush({}); }
-					});
-				});
-
-			obs.toPromise()
+			requester
+				.addOperator(interceptor1, interceptor2)
+				.send()
+				.toPromise()
 				.then(() => {
 					expect(eternalCalledCount).toBe(1);
 					done();
@@ -169,6 +156,7 @@ describe("Operator: Interceptor", () => {
 
 	it("should call temporary interceptors on retry", done => {
 		inject([Requester], (requester: Requester<any>) => {
+			mock.addResponse("/", {});
 
 			let retried = 0;
 			let temporaryCalledCount = 0;
@@ -179,17 +167,10 @@ describe("Operator: Interceptor", () => {
 				return retried < 3 ? Promise.resolve() : Promise.reject(null);
 			}, false, () => Promise.resolve());
 
-			const obs = requester.addOperator(interceptor1).send();
-
-			obs.filter(ev => ev instanceof RequestFiredEvent)
-				.debounceTime(50)
-				.subscribe(() => {
-					http.match("/").forEach(val => {
-						if (!val.cancelled) {val.flush({}); }
-					});
-				});
-
-			obs.toPromise()
+			requester
+				.addOperator(interceptor1)
+				.send()
+				.toPromise()
 				.then(() => {
 					expect(temporaryCalledCount).toBe(3);
 					done();

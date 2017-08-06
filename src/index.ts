@@ -17,3 +17,5 @@ export * from "./operators";
 export * from "./events";
 export * from "./helpers";
 export * from "./interfaces";
+
+export * from "./testing";

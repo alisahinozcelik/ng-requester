@@ -5,9 +5,11 @@ import { Subject, Observable, Subscription } from "rxjs";
 
 import { RequesterModule, Requester, ProcessStartedEvent, RequestFiredEvent } from "../index";
 import { Guard } from "./guard";
+import { MockBackendService } from "../testing";
 
 describe("Operator: Guard", () => {
 	let http: HttpTestingController;
+	let mock: MockBackendService;
 
 	beforeEach(() => {
 		TestBed.configureTestingModule({
@@ -15,6 +17,7 @@ describe("Operator: Guard", () => {
 		});
 
 		http = TestBed.get(HttpTestingController);
+		mock = TestBed.get(MockBackendService);
 	});
 
 	it("should be able to prevent request", done => {
@@ -48,6 +51,7 @@ describe("Operator: Guard", () => {
 
 	it("should retry if retrying promise passed", done => {
 		inject([Requester], (requester: Requester<any>) => {
+			mock.addResponse("/", {});
 			let allowed = false;
 
 			const guard = new Guard(
@@ -57,14 +61,10 @@ describe("Operator: Guard", () => {
 					resolve();
 				}));
 
-			const obs = requester.addOperator(guard).send();
-
-			obs.filter(ev => ev instanceof RequestFiredEvent)
-				.subscribe(res => {
-					http.expectOne("/").flush({});
-				});
-
-			obs.toPromise()
+			requester
+				.addOperator(guard)
+				.send()
+				.toPromise()
 				.then(() => {done(); })
 				.catch(() => {fail(); });
 		})();
@@ -86,5 +86,4 @@ describe("Operator: Guard", () => {
 				.catch(() => {done(); });
 		})();
 	});
-
 });
