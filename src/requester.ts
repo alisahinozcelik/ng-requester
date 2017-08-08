@@ -115,6 +115,7 @@ export class Requester<T = any> {
 		if (responsType !== undefined) { clone.responseType = responsType; }
 
 		clone.method = method;
+		clone.url = url;
 		return clone.send();
 	}
 

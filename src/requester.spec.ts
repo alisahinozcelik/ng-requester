@@ -9,10 +9,12 @@ import { Requester } from "./requester";
 import { METHODS, RESPONSE_TYPES } from "./interfaces";
 import { RequestFiredEvent, ProcessFinishedEvent, ProcessStartedEvent } from "./events";
 import { Response } from "./helpers";
+import { MockBackendService } from "./testing";
 
 describe("Service: Requester", () => {
 	let subsArr: Subscription[] = [];
 	let http: HttpTestingController;
+	let mock: MockBackendService;
 
 	beforeAll(() => {
 	});
@@ -28,6 +30,7 @@ describe("Service: Requester", () => {
 		});
 
 		http = TestBed.get(HttpTestingController);
+		mock = TestBed.get(MockBackendService);
 	});
 
 	it("should initialise properly", done => {
@@ -148,6 +151,24 @@ describe("Service: Requester", () => {
 				});
 
 			obs.toPromise().catch(() => {fail(); });
+		})();
+	});
+
+	it("request shorthand methods should work", done => {
+		inject([Requester], (requester: Requester<any>) => {
+			mock.addResponse(req => req.method === METHODS[METHODS.DELETE] && req.url === "/request", {});
+			mock.addResponse(req => req.method === METHODS[METHODS.GET] && req.url === "/get", {});
+			mock.addResponse(req => req.method === METHODS[METHODS.POST] && req.url === "/post", {});
+
+			Promise.all([
+				requester.request(METHODS.DELETE, "request").toPromise(),
+				requester.get("get").toPromise(),
+				requester.post("post").toPromise()
+			]).then(() => {
+				done();
+			}).catch(() => {
+				fail();
+			});
 		})();
 	});
 
