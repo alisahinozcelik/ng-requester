@@ -22,7 +22,11 @@ export class MockBackendService {
 		const map = new Map();
 		map.set(RequestFiredEvent, [(ev: RequestFiredEvent<any>) => {
 			this.testingController.match(match).forEach(req => {
-				defer(() => {req.flush(response); });
+				defer(() => {
+					if (!req.cancelled) {
+						req.flush(response);
+					}
+				});
 			});
 		}]);
 
