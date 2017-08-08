@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpResponse, HttpRequest } from "@angular/common/http";
 import { HttpTestingController, RequestMatch, TestRequest } from "@angular/common/http/testing";
+import { defer } from "lodash";
 
 import { Requester } from "../requester";
 import { Inheritor } from "../helpers";
@@ -20,7 +21,9 @@ export class MockBackendService {
 	): void {
 		const map = new Map();
 		map.set(RequestFiredEvent, [(ev: RequestFiredEvent<any>) => {
-			this.testingController.match(match).forEach(req => req.flush(response));
+			this.testingController.match(match).forEach(req => {
+				defer(() => {req.flush(response); });
+			});
 		}]);
 
 		this.requester["listeners"] = map;
