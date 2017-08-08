@@ -277,7 +277,10 @@ export class Requester<T = any> {
 							this.interceptorCycle(processID, stream, eternalInterceptors, temporaryInterceptors, retry.data as symbol);
 						})
 						.catch(err => {
-							stream.error(new Error(Requester.RETRYING_REJECTED, err));
+							if (!(err instanceof Error)) {
+								err = new Error(Requester.RETRYING_REJECTED, err);
+							}
+							stream.error(err);
 						});
 				}
 			});
@@ -295,7 +298,10 @@ export class Requester<T = any> {
 							this.interceptorCycle(processID, stream, eternalInterceptors, temporaryInterceptors);
 						})
 						.catch(err => {
-							stream.error(new Error(Requester.RETRYING_REJECTED, err));
+							if (!(err instanceof Error)) {
+								err = new Error(Requester.RETRYING_REJECTED, err);
+							}
+							stream.error(err);
 						});
 				} else {
 					stream.error(err);
