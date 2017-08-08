@@ -16,9 +16,8 @@ export class PreRequest extends OperatorBase implements IOperator {
 	}
 
 	public middleware(options: IRequesterOptionsRequired): Promise<IRequesterOptionsRequired> {
-		const result = this.modifier(options);
 		return Promise.resolve()
-			.then(() => result)
+			.then(() => this.modifier(options))
 			.catch(error => {
 				if (!(error instanceof Error)) {
 					error = new Error(PreRequest.ERROR, error);

@@ -34,7 +34,7 @@ interface IPreRequestOptions {
 	body: any;
 	headers: HttpHeaders;
 	params: HttpParams;
-	responsType: RESPONSE_TYPES;
+	responseType: RESPONSE_TYPES;
 }
 
 @Injectable()
@@ -328,7 +328,7 @@ export class Requester<T = any> {
 					body: this.body,
 					headers: this.headers,
 					params: this.params,
-					responsType: this.responseType
+					responseType: this.responseType
 				});
 
 				return Observable.of(val).merge(preRequests$);
@@ -337,9 +337,9 @@ export class Requester<T = any> {
 				if (options instanceof RequesterEvent) {return Observable.of(options); }
 
 				const request = new HttpRequest<U>(METHODS[this.method], this.host + "/" + this.url, this.body, {
-					headers: this.headers,
-					responseType: (RESPONSE_TYPES[this.responseType] as "arraybuffer"),
-					params: this.params
+					headers: options.headers,
+					responseType: (RESPONSE_TYPES[options.responseType] as "arraybuffer"),
+					params: options.params
 				});
 
 				return this.client.request<U>(request)
