@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { HttpResponse, HttpRequest } from "@angular/common/http";
+import { HttpResponse, HttpRequest, HttpResponseBase, HttpHeaders } from "@angular/common/http";
 import { HttpTestingController, RequestMatch, TestRequest } from "@angular/common/http/testing";
 
 import { Requester } from "../requester";
@@ -16,7 +16,7 @@ export class MockBackendService {
 
 	public addResponse(
 		match: string | RequestMatch | ((req: HttpRequest<any>) => boolean),
-		response: ArrayBuffer | Blob | string | number | Object | (string | number | Object | null)[] | null,
+		response: ArrayBuffer | Blob | string | number | Object | (string | number | Object | null)[] | null | HttpResponseBase,
 		waitFor = 0
 	): void {
 		const map = new Map();
@@ -24,7 +24,15 @@ export class MockBackendService {
 			this.testingController.match(match).forEach(req => {
 				setTimeout(() => {
 					if (!req.cancelled) {
-						req.flush(response);
+						if (response instanceof HttpResponseBase) {
+							req.flush((response as HttpResponse<any>).body, {
+								headers: response.headers,
+								status: response.status,
+								statusText: response.statusText
+							});
+						} else {
+							req.flush(response);
+						}
 					}
 				}, waitFor);
 			});
