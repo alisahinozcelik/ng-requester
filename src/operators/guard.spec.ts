@@ -3,7 +3,7 @@ import { TestBed, inject } from "@angular/core/testing";
 import { HttpTestingController } from "@angular/common/http/testing";
 import { Subject, Observable, Subscription } from "rxjs";
 
-import { RequesterModule, Requester, ProcessStartedEvent, RequestFiredEvent } from "../index";
+import { RequesterTestingModule, Requester, ProcessStartedEvent, RequestFiredEvent } from "../index";
 import { Guard } from "./guard";
 import { MockBackendService } from "../testing";
 
@@ -13,7 +13,7 @@ describe("Operator: Guard", () => {
 
 	beforeEach(() => {
 		TestBed.configureTestingModule({
-			imports: [RequesterModule.forTesting()]
+			imports: [RequesterTestingModule]
 		});
 
 		http = TestBed.get(HttpTestingController);

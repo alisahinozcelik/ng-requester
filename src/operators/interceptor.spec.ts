@@ -4,7 +4,7 @@ import { HttpTestingController } from "@angular/common/http/testing";
 import { Subject, Observable, Subscription } from "rxjs";
 import { noop, defer } from "lodash";
 
-import { RequesterModule, Requester, ProcessStartedEvent, RequestFiredEvent } from "../index";
+import { RequesterTestingModule, Requester, ProcessStartedEvent, RequestFiredEvent } from "../index";
 import { Interceptor } from "./interceptor";
 import { OpenPromise } from "../utils/open-promise";
 import { MockBackendService } from "../testing";
@@ -15,7 +15,7 @@ describe("Operator: Interceptor", () => {
 
 	beforeEach(() => {
 		TestBed.configureTestingModule({
-			imports: [RequesterModule.forTesting()]
+			imports: [RequesterTestingModule]
 		});
 
 		http = TestBed.get(HttpTestingController);
