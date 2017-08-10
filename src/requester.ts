@@ -342,11 +342,16 @@ export class Requester<T = any> {
 			.flatMap((options: IPreRequestOptions) => {
 				if (options instanceof RequesterEvent) {return Observable.of(options); }
 
-				const request = new HttpRequest<U>(METHODS[this.method], this.host + "/" + this.url, this.body, {
-					headers: options.headers,
-					responseType: (RESPONSE_TYPES[options.responseType] as "arraybuffer"),
-					params: options.params
-				});
+				const request = new HttpRequest<U>(
+					METHODS[this.method],
+					this.host + "/" + this.url,
+					options.body,
+					{
+						headers: options.headers,
+						responseType: (RESPONSE_TYPES[options.responseType] as "arraybuffer"),
+						params: options.params
+					}
+				);
 
 				return this.client.request<U>(request)
 					.catch<any, HttpResponse<U>>((err: any) => {
