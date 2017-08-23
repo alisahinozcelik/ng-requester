@@ -15,7 +15,7 @@
   "typings": "./dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://bilgetech.visualstudio.com/DefaultCollection/Bilgetech%20Frontend%20Libraries/_git/ng-requester"
+    "url": "https://github.com/alisahinozcelik/ng-requester.git"
   },
   "keywords": [
     "angular"
