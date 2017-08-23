@@ -4,7 +4,7 @@ import { HttpRequest } from "@angular/common/http";
 import { HttpTestingController } from "@angular/common/http/testing";
 import { Subject, Observable, Subscription } from "rxjs";
 
-import { RequesterModule } from "./requester.module";
+import { RequesterTestingModule } from "./requester.testing.module";
 import { Requester } from "./requester";
 import { METHODS, RESPONSE_TYPES } from "./interfaces";
 import { RequestFiredEvent, ProcessFinishedEvent, ProcessStartedEvent } from "./events";
@@ -26,7 +26,7 @@ describe("Service: Requester", () => {
 		subsArr = [];
 
 		TestBed.configureTestingModule({
-			imports: [RequesterModule.forTesting()]
+			imports: [RequesterTestingModule]
 		});
 
 		http = TestBed.get(HttpTestingController);

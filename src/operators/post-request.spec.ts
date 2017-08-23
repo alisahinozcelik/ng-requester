@@ -4,7 +4,7 @@ import { HttpResponse } from "@angular/common/http";
 import { Subject, Observable, Subscription } from "rxjs";
 import { extend } from "lodash";
 
-import { RequesterModule, Requester, RawResponse, RequestFiredEvent, Error } from "../index";
+import { RequesterTestingModule, Requester, RawResponse, RequestFiredEvent, Error } from "../index";
 import { PostRequest } from "./post-request";
 import { MockBackendService } from "../testing";
 import { OpenPromise } from "../utils/open-promise";
@@ -14,7 +14,7 @@ describe("Operator: Post Request", () => {
 
 	beforeEach(() => {
 		TestBed.configureTestingModule({
-			imports: [RequesterModule.forTesting()]
+			imports: [RequesterTestingModule]
 		});
 
 		mock = TestBed.get(MockBackendService);

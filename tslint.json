@@ -21,6 +21,7 @@
     "no-bitwise": true,
     "no-unused-expression": true,
     "no-var-keyword": true,
+    "no-unused-vars": ["error", { "vars": "all", "args": "after-used", "ignoreRestSiblings": false }],
     "one-line": [
       true,
       "check-catch",

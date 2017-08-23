@@ -12,6 +12,7 @@ import "./customised-observable";
 // Lib
 export * from "./requester";
 export * from "./requester.module";
+export * from "./requester.testing.module";
 
 export * from "./operators";
 export * from "./events";
